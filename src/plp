@@ -1,0 +1,1598 @@
+#!/bin/bash
+
+#
+#  Copyright 2009-2012 Alex Vesev
+#
+#  This file is part of Packages List Processor.
+#
+#  Packages List Processor is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  Packages List Processor is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with Packages List Processor.  If not, see <http://www.gnu.org/licenses/>.
+#
+##
+
+#
+#  Packages List Processor is a tool to operate with a list of packages to be
+#  installed on a system, to check whether they are all available from system
+#  software repository.
+#
+##
+
+# Below, before the program code, there is an example of packages list embedded
+# into this script body:
+
+#### to be installed list start
+# #
+ #
+#
+
+########################
+## Example of commentary
+
+# package-to-be-istalled - Some description. // Robo-added official summary.
+# pack-head pack2 pack3 - Several packs on one line. // Summary for a \"head\" package.
+## package-excluded-from-install - Pack/packs to be omited.
+
+########################
+## Development packages:
+
+# gcc auto-tools - GNU C Compiller and tools.
+
+###############
+## Text editors
+
+# leafpad - ... // GTK+ based simple text editor.
+## medit - Is absent in some distributions.
+# geany - Small and fast Integrated Development Environment, text editor.
+
+#
+ #
+# #
+#### to be installed list stop
+
+# Here - below is a script body, script body may be placed anywhere outside
+# the space between two markers:
+#        # ${markerStartId}
+#        and
+#        # ${markerFinishId}
+#
+# And opposite thing: packages list must be surrounded by the markers.
+
+
+
+
+#!/bin/bash
+
+terminalBin="/usr/bin/lxterminal"
+if which "${terminalBin}" 2>/dev/null >/dev/null ; then
+    tty -s
+    [ $? -ne 0 ] \
+        && "${terminalBin}" -e "\"${0}\" \"${@}\"" \
+        && exit ${?}
+fi
+
+#########################
+##  variables declaration
+declare -r  markerStartId="to be installed list start"
+declare -r  markerFinishId="to be installed list stop"
+
+declare -ri noError=0 # Zero is OK
+declare -ri errorMisc=1
+declare -ri errorUndefined=253
+declare -ri errorEpic=254
+declare     errorState=${noError}
+
+declare -ri codeSuccess=0
+declare -ri codeFailure=1
+declare -ri codeInsidePacksPoolsArea=2
+declare -ri codeOutsidePacksPoolsArea=3
+
+declare -r  distroFamilyUNExistent="none"
+declare -r  distroFamilyUbuntu="Ubuntu"
+declare -r  distroFamilyFedora="Fedora"
+declare -r  distroFamilyArchBang="ArchBang"
+
+declare -r  distroVersionUbuntuFormat="YY.MM"
+declare -r  distroVersionFedoraFormat="Number"
+declare -r  distroVersionArchBangFormat="YYYY-MM-DD"
+
+
+declare -r  distroFamilyDEFAULT="${distroFamilyUNExistent}"
+declare -r  distroVersionDEFAULT="none"
+
+declare     distroFamilySpecifiedInInputList="noneFamily"
+declare     distroVersionSpecifiedInInputList="noneVersion"
+
+
+declare -r  markerPackagesListStart="\# " # Note: '\#' is '#' in a regular expression.
+declare -r  markerStringToBeIgnoredStart="## "
+declare -r  delimeterInNotFoundField=" ---- "
+declare -r  delimeterBetweenMissedAndFoundGroups=" # "
+declare -r  markerPoolWithNothingFoundAtAll="NOTHING FOUND"
+declare -r  delimeterMainFields=" ,, "
+declare -r  delimeterDescriptionFromRepo=" // "
+declare -r  timestamp="$( date '+%Y-%m-%d-%H%M' )"
+
+declare -i  counterPoolWithMissedPackages=0
+declare -i  counterPoolWithNothingFoundAtAll=0
+declare -i  counterTotalNumberOfPoolsWithPacks=0
+declare     formatedOutputLineWithPacksAndDescriptions=""
+declare     fileWithPacksPoolsDescriptions=""
+declare     fullListOfPacks=""
+declare     doNotSkipMarkedLine=""
+
+declare -r  tabsBin="tabs"
+
+##  variables declaration
+#########################
+
+#########################
+## functions declarations
+
+function isTokenInsideString {
+    local -r token="${1}"
+    local -r stringInput="${2}"
+
+    local    stringInputFiltered=""
+
+    stringInputFiltered="${stringInput/${token}/}"
+    [ "${#stringInput}" != "${#stringInputFiltered}" ] \
+        && return ${codeSuccess}
+    return ${codeFailure}
+}
+
+
+function fabricFormatedPool {
+    local -r containerNameForFabricatedFormatedPool="${1}"
+    local -r inputLine="${2}"
+
+    local    packagesNamesList=""
+    local    distroFamilySetFromInputList=""
+    local    distroVersionSetFromInputList=""
+    local    suppliedByUserDescription=""
+
+    local    isEnabledLineAndPacksNamesContaining=""
+    local    outputLine=""
+    local    containerWithFabricatedFormatedPool=""
+
+    shopt -s extglob
+
+    isActivePackagesPool "packagesNamesList" "${singleLine}" \
+        ; isEnabledLineAndPacksNamesContaining="${?}"
+
+    [ "${isEnabledLineAndPacksNamesContaining}" != "${codeSuccess}" ] \
+        && return ${codeFailure}
+
+    getPoolDeprecatedDistroFamilyList "distroFamilySetFromInputList" "${singleLine}"
+    getPoolDeprecatedVersions "distroVersionSetFromInputList" "${singleLine}"
+    getPoolDescription "suppliedByUserDescription" "${singleLine}"
+
+    isMustBeSkippedForDistroFamily "${distroFamilySetFromInputList}" \
+        && echo "INFORMATION:${0}:${LINENO}: For ${distroFamilySetFromInputList//+([[:space:]])/, } will ignore Package(s) '${packagesNamesList}'." >&2 \
+        && return ${codeFailure}
+
+    buildLineReadyToBeStoredInList "outputLine" \
+        "${packagesNamesList}" \
+        "${distroFamilySetFromInputList}" \
+        "${distroVersionSetFromInputList}" \
+        "${suppliedByUserDescription}"
+
+    containerWithFabricatedFormatedPool="${outputLine}"
+    eval ${containerNameForFabricatedFormatedPool}=\"'${containerWithFabricatedFormatedPool}'\"
+
+    [ -n "${outputLine}" ] \
+        && return ${codeSuccess}
+    return ${codeFailure}
+}
+
+function buildLineReadyToBeStoredInList {
+    local -r  containrNameForBuildedLineReadyToBeStoredInList="${1}"
+    local -ra packagesNamesList=(${2})
+    local -r  distroFamilySpecifiedInInputList="${3}"
+    local -r  distroVersionSpecifiedInInputList="${4}"
+    local -r  suppliedByUserDescription="${5}"
+
+    local -r   activePoolStartMark="${markerPackagesListStart/#\\/}" # Remove reg.expressions shields.
+    local -r   passivePoolStartMark="${markerStringToBeIgnoredStart/#\\/}" # Remove reg.expressions shields.
+
+    local -ri codeExist=0
+    local -ri codeMissed=1 # Be aware: for Yum and other external utility it may not be '1', but 'smth != 0'.
+    local -i  isAllFoundInRepository=0
+    local -i  isPackFound=0
+
+    local     singlePackName=""
+    local     isFirstInListAlreadyProcessed=""
+    local     idx=0
+    local -ri quantityOfNamesInList=${#packagesNamesList[@]}
+
+    local     headPackageNameInList=""
+    local     draftRepoSummary=""
+    local -a  draftListOfFoundPacks
+    local -a  draftListOfMissedPacks
+
+    local     outputString=""
+    local     containerWithBuildedLineReadyToBeStoredInList=""
+
+    headPackageNameInList="${packagesNamesList[0]}"
+    isAllFoundInRepository=${codeExist}
+    isPackFound=${codeMissed}
+    isFirstInListAlreadyProcessed="false"
+
+    # XXX - must be exported in a function returning two strings: found and missed lists.
+    for (( idx=0 ; idx<${#packagesNamesList[@]} ; idx++ )) ; do
+        # XXX - direct use of 'distroFamilySelectedByUser'.
+        getPackDescriptionFromRepository "repositorySummary" "${packagesNamesList[idx]}" "${distroFamilySelectedByUser}"
+        isPackFound=${?}
+
+        [ ${isPackFound} != ${codeExist} ] \
+            && isAllFoundInRepository=${codeMissed} \
+            && draftListOfMissedPacks=("${draftListOfMissedPacks[@]}" "${packagesNamesList[idx]}")
+        [ ${isPackFound} == ${codeExist} ] \
+            && draftListOfFoundPacks=("${draftListOfFoundPacks[@]}" "${packagesNamesList[idx]}")
+        [ ${idx} == 0 ] \
+            && [ ${isPackFound} == ${codeExist} ] \
+            && draftRepoSummary=${repositorySummary}
+    done
+
+    shopt -s extglob
+    if [ ${isAllFoundInRepository} == ${codeExist} ]
+    then
+        outputString="${activePoolStartMark}" \
+            ; outputString="${outputString}${draftListOfFoundPacks[*]}" \
+            ; outputString="${outputString/%*([[:space:]])/}" # Strip trailing space. # XXX - ...!?
+        outputString="${outputString}${delimeterMainFields}" \
+            ; outputString="${outputString}${distroFamilySpecifiedInInputList}"
+        outputString="${outputString}${delimeterMainFields}" \
+            ; outputString="${outputString}${distroVersionSpecifiedInInputList}"
+        outputString="${outputString}${delimeterMainFields}" \
+            ; outputString="${outputString}${suppliedByUserDescription}"
+    elif [ ${isAllFoundInRepository} == ${codeMissed} ]
+    then
+        missedOnlyPacksList=("${draftListOfMissedPacks[@]}")
+        if [ ${#draftListOfFoundPacks[@]} == 0 ] ; then
+            foundOnlyPacksList=("${markerPoolWithNothingFoundAtAll}")
+        else
+            foundOnlyPacksList=("${draftListOfFoundPacks[@]}")
+        fi
+
+        # String template:
+        ## reqFamily reqVersion ---- head-package ---- missed-pack1-name ,, found-pack-name ,, Family ,, Version ,, Descriptive text // Found repo's description.  ,, pack-name-found pack-name-found pack-name-found ,, Ubuntu ,, 12.04 ,, Descriptive text // Found repo's description.
+        outputString="${passivePoolStartMark}" \
+                ; outputString="${outputString}${distroFamilySelectedByUser}" \
+                ; outputString="${outputString} ${distroVersionSelectedByUser}" \
+            ; outputString="${outputString}${delimeterInNotFoundField}" \
+                ; outputString="${outputString}${headPackageNameInList}" \
+            ; outputString="${outputString}${delimeterInNotFoundField}" \
+                ; outputString="${outputString}${missedOnlyPacksList[*]}"
+        outputString="${outputString}${delimeterBetweenMissedAndFoundGroups}" \
+            ;outputString="${outputString}${foundOnlyPacksList[*]}" \
+        outputString="${outputString}${delimeterMainFields}" \
+            ; outputString="${outputString}${distroFamilySpecifiedInInputList}"
+        outputString="${outputString}${delimeterMainFields}" \
+            ; outputString="${outputString}${distroVersionSpecifiedInInputList}"
+        outputString="${outputString}${delimeterMainFields}" \
+            ; outputString="${outputString}${suppliedByUserDescription}"
+    fi
+
+    [ "${isWantedPackDescriptionEvaluation}" == "true" ] \
+        && [ -n "${draftRepoSummary}" ] \
+        && outputString="${outputString} // ${draftRepoSummary}."
+
+    # Strip trailing "   //   ", if any.
+    outputString="${outputString/%*([[:space:]])\/\/*([[:space:]])/}"
+
+    containerWithBuildedLineReadyToBeStoredInList="${outputString}"
+    eval ${containrNameForBuildedLineReadyToBeStoredInList}=\"'${containerWithBuildedLineReadyToBeStoredInList}'\"
+
+    return ${isAllFoundInRepository}
+}
+
+function isMustBeSkippedForDistroFamily {
+    local -r distroFamilyDeprecated="${1}"
+
+    local    distroFamily=""
+
+    [ "${doNotSkipMarkedLine}" == "true" ] \
+        && return ${codeFailure}
+
+    for distroFamily in ${distroFamilyDeprecated} ; do
+        [ "${distroFamily}" == "${distroFamilySelectedByUser}" ] \
+            && [ "${distroFamily}" != "${distroFamilyUNExistent}" ] \
+            && return ${codeSuccess}
+    done
+    return ${codeFailure}
+}
+
+function sortListOfLines {
+    local -r  containerNameForSortedListOfLines="${1}"
+    local -r  stringInput="${2}"
+
+    local -r  delimeterInPair="_-___-_"
+
+    local -a  arrayPairsBuffer=""
+    local     sortedListOfLines=""
+
+    local -i  idx=0
+    local -i  quantityWords=0
+
+    arrayPairsBuffer=(${stringInput})
+    quantityWords=${#arrayPairsBuffer[@]}
+
+    [ $(( quantityWords%2 )) != 0 ] \
+        && echo "ERROR:${0}:${LINENO}: Words quantity is odd. Must be a set of pairs - must be even." >&2 \
+        && exit ${errorMisc}
+        #&& return ${codeFailure}
+
+    idx=0
+    for (( idx=0 ; idx<quantityWords ; idx+=2 )) ; do
+        sortedListOfLines="${arrayPairsBuffer[idx]}${delimeterInPair}${arrayPairsBuffer[idx+1]} ${sortedListOfLines}"
+    done
+    sortedListOfLines="$( tr ' ' '\n' <<< "${sortedListOfLines}" )"
+    sortedListOfLines="${sortedListOfLines//${delimeterInPair}/ }"
+
+    # XXX - Bug: Sort order may be not expected.
+    #   Sort utility wil do direct sort. No aggregation by equal words:
+    #       python i686
+    #       python-setuptools noarch
+    #       python x86_64
+    sortedListOfLines="$( sort <<< "${sortedListOfLines}" )"
+
+    removeDuplicateNeighbourLinesInList "sortedListOfLines" "${sortedListOfLines}"
+    eval ${containerNameForSortedListOfLines}=\"'${sortedListOfLines}'\"
+    return ${codeSuccess}
+}
+
+function removeDuplicateNeighbourLinesInList {
+    local -r containerNameForListWithRemovedDuplicateLines="${1}"
+    local -r inputLines="${2}"
+
+    local    listWithRemovedDuplicateLines=""
+    local    line=""
+    local    lineNext=""
+
+    listWithRemovedDuplicateLines=""
+    line=""
+    while read lineNext ; do
+        [ "${line}" == "${lineNext}" ] \
+            && continue
+        listWithRemovedDuplicateLines="${listWithRemovedDuplicateLines}${lineNext} "
+        line="${lineNext}"
+    done <<< "${inputLines}"
+
+    shopt -s extglob
+    listWithRemovedDuplicateLines="${listWithRemovedDuplicateLines/%*([[:space:]])/}" # Strip trailing space.
+    eval ${containerNameForListWithRemovedDuplicateLines}=\"'${listWithRemovedDuplicateLines}'\"
+}
+
+function isActivePackagesPool {
+    local -r containerNameForActivePackagesPool="${1}"
+    local -r inputFullLine="${2}"
+
+    local  distroFamilySet=""
+    local  lineWithStripedPrefix=""
+    local  lineWithStripedPrefixAndSuffix=""
+    local  containerWithActivePackagesPool=""
+
+    shopt -s extglob
+
+    [ -z "${inputFullLine}" ] \
+        && return ${codeFailure}
+
+    lineWithStripedPrefix="${inputFullLine}"
+    lineWithStripedPrefix="${inputFullLine/#${markerPackagesListStart}*([[:space:]])/}"
+
+    lineWithStripedPrefixAndSuffix="${lineWithStripedPrefix}"
+    lineWithStripedPrefixAndSuffix="${lineWithStripedPrefixAndSuffix/%*([[:space:]])${delimeterMainFields}*([[:space:]])*/}"
+    lineWithStripedPrefixAndSuffix="${lineWithStripedPrefixAndSuffix/%*([[:space:]])/}"
+
+    containerWithActivePackagesPool="${lineWithStripedPrefixAndSuffix}"
+
+    [ ${#inputFullLine} == ${#lineWithStripedPrefix} ] \
+        || [ ${#lineWithStripedPrefix} == ${#lineWithStripedPrefixAndSuffix} ] \
+        && return ${codeFailure}
+
+    getPoolDeprecatedDistroFamilyList "distroFamilySet" "${inputFullLine}" \
+        || return ${codeFailure}
+
+    isMustBeSkippedForDistroFamily "${distroFamilySet}" \
+        && return ${codeFailure}
+
+    eval ${containerNameForActivePackagesPool}=\"'${containerWithActivePackagesPool}'\"
+    return ${codeSuccess}
+}
+
+function getPoolPackagesList {
+    local -r containerNameForPoolPackagesList="${1}"
+    local -r singleLine="${2}"
+
+    local    containerWithPoolPakagesList=""
+
+    isActivePackagesPool "containerWithPoolPakagesList" "${singleLine}" \
+        || return ${codeFailure}
+
+    getConcreteFieldFromLine "containerWithPoolPakagesList" "1" "${inputFullLine}"
+    eval ${containerNameForPoolPackagesList}=\"'${containerWithPoolPakagesList}'\"
+    return "${codeSuccess}"
+}
+
+function getPoolDeprecatedDistroFamilyList {
+    local -r containerNameForDeprecatedDistroFamilyList="${1}"
+    local -r inputFullLine="${2}"
+
+    local    containerWithPoolDeprecatedDistroFamilyList=""
+
+    getConcreteFieldFromLine "containerWithPoolDeprecatedDistroFamilyList" "2" "${inputFullLine}"
+
+    ! isKnownDistroFamily "${containerWithPoolDeprecatedDistroFamilyList}" \
+        && echo "ERROR:${0}:${LINENO}: Found unknown distribution family name '${containerWithPoolDeprecatedDistroFamilyList}'. Skiped. Error token is: '${inputFullLine}'." >&2 \
+        && return ${codeFailure}
+    eval ${containerNameForDeprecatedDistroFamilyList}=\"'${containerWithPoolDeprecatedDistroFamilyList}'\"
+    return ${codeSuccess}
+}
+
+function getPoolDeprecatedVersions {
+    local -r containerNameForPoolDeprecatedVersions="${1}"
+    local -r inputFullLine="${2}"
+
+    local    containerWithPoolDeprecatedVersions=""
+
+    getConcreteFieldFromLine "containerWithPoolDeprecatedVersions" "3" "${inputFullLine}"
+
+    ! isKnownDistroVersion "${containerWithPoolDeprecatedVersions}" \
+        && echo "ERROR:${0}:${LINENO}: Found unknown distribution version sign '${foundDistroFamily}'. Error token is: ${inputFullLine} ." >&2 \
+        && return ${codeFailure}
+
+    eval ${containerNameForPoolDeprecatedVersions}=\"'${containerWithPoolDeprecatedVersions}'\"
+    return ${codeFailure}
+}
+
+function getPoolDescription {
+    local -r containerNameForPoolDescription="${1}"
+    local -r inputFullLine="${2}"
+
+    local    containerWithPoolDescription=""
+
+    getConcreteFieldFromLine "containerWithPoolDescription" "4" "${inputFullLine}"
+
+    eval ${containerNameForPoolDescription}=\"'${containerWithPoolDescription}'\"
+    [ -n "${containerWithPoolDescription}" ] \
+        && return ${codeSuccess}
+    return ${codeFailure}
+}
+
+function getConcreteFieldFromLine {
+    local -r  containerNameForConcreteFieldFromLine="${1}"
+    local -ri requestedFieldNumber="${2}"
+    local -r  inputFullLine="${3}"
+
+    local containerWithConcreteFieldFromLine=""
+    local -i idx=0
+
+    shopt -s extglob
+
+    containerWithConcreteFieldFromLine="${inputFullLine}"
+    for (( idx=1 ; idx<requestedFieldNumber ; idx++ )) ; do
+        containerWithConcreteFieldFromLine="${containerWithConcreteFieldFromLine#*${delimeterMainFields}}" # Strip first leading field.
+    done
+    containerWithConcreteFieldFromLine="${containerWithConcreteFieldFromLine/%*([[:space:]])${delimeterMainFields}*/}" # Strip all trailing fields, except the first.
+    containerWithConcreteFieldFromLine="${containerWithConcreteFieldFromLine##*([[:space:]])}" # Strip leading space.
+
+    [ ${#containerWithConcreteFieldFromLine} != ${#inputFullLine} ] \
+        && eval ${containerNameForConcreteFieldFromLine}=\"'${containerWithConcreteFieldFromLine}'\" \
+        && return ${codeSuccess}
+
+    containerWithConcreteFieldFromLine=""
+    eval ${containerNameForConcreteFieldFromLine}=\"'${containerWithConcreteFieldFromLine}'\"
+    return ${codeFailure}
+}
+
+function isKnownDistroFamily {
+    local -r inputSetOfFamilyNames="${1}"
+
+    local    distroKnownFamily=""
+    local    singleDistroFamily=""
+
+    for distroKnownFamily in "${distroFamilyUNExistent}" \
+                                "${distroFamilyUbuntu}" \
+                                "${distroFamilyFedora}" \
+                                "${distroFamilyArchBang}"
+    do
+        for singleDistroFamily in ${inputSetOfFamilyNames}
+        do
+            [ "${singleDistroFamily}" == "${distroKnownFamily}" ] \
+                && return ${codeSuccess}
+        done
+    done
+    return ${codeFailure}
+}
+
+function isKnownDistroVersion {
+    local -r inputVersionSigns="${1}"
+
+    [ -z "${inputVersionSigns}" ] \
+        && return ${codeFailure}
+    return ${codeSuccess}
+}
+
+function getPackDescriptionFromRepository {
+    local -r containerNameForPackDescriptionFromRepository="${1}"
+    local -r packageName="${2}"
+    local -r distroFamilyRequested="${3}"
+
+    local    stubName=""
+    local    stubDelimeter=""
+    local    textSummary=""
+    local    feedback=""
+    local    containerWithPackDescriptionFromRepository=""
+
+    if [ "${distroFamilyRequested}" == "${distroFamilyUNExistent}" ]
+    then
+        echo "ERROR:${0}:${LINENO}: Distribution family abstruct identifier '${distroFamilyRequested}' can not be used at such a context." >&2
+        return ${codeFailure}
+
+    elif [ "${distroFamilyRequested}" == "${distroFamilyUbuntu}" ]
+    then
+        getPackDescriptionFromRepoUbuntu "textSummary" "${packageName}"
+        feedback="${?}"
+    elif [ "${distroFamilyRequested}" == "${distroFamilyFedora}" ]
+    then
+        getPackDescriptionFromRepoFedora "textSummary" "${packageName}"
+        feedback="${?}"
+    elif [ "${distroFamilyRequested}" == "${distroFamilyArchBang}" ]
+    then
+        getPackDescriptionFromRepoArchBang "textSummary" "${packageName}"
+        feedback="${?}"
+    else
+        echo "ERROR:${0}:${LINENO}: Unacceptable identifier of a distribution family '${distroFamilyRequested}'." >&2
+        [ ${errorState} != ${noError} ] \
+            && errorState=${errorMisc}
+        return ${codeFailure}
+    fi
+
+    containerWithPackDescriptionFromRepository="${textSummary}"
+    eval ${containerNameForPackDescriptionFromRepository}=\"'${containerWithPackDescriptionFromRepository}'\"
+    return ${feedback}
+}
+
+function getPackDescriptionFromRepoUbuntu {
+    local -r containerNameForPackDescriptionFromRepoUbuntu="${1}"
+    local -r packageName="${2}"
+
+    local    stubName=""
+    local    stubDelimeter=""
+    local    containerWithPackDescriptionFromRepoUbuntu=""
+
+    shopt -s extglob
+
+    apt-cache --names-only search "^${packageName}$" >&2
+
+    read stubName stubDelimeter containerWithPackDescriptionFromRepoUbuntu <<< "$(apt-cache --names-only search "^${packageName}$" )"
+    [ -z "${containerWithPackDescriptionFromRepoUbuntu}" ] \
+        && return ${codeFailure}
+
+    containerWithPackDescriptionFromRepoUbuntu="${containerWithPackDescriptionFromRepoUbuntu}"
+    eval ${containerNameForPackDescriptionFromRepoUbuntu}=\"'${containerWithPackDescriptionFromRepoUbuntu}'\"
+    return ${codeSuccess}
+}
+
+function getPackDescriptionFromRepoFedora {
+    local -r containerNameForPackDescriptionFromRepoFedora="${1}"
+    local -r packageName="${2}"
+
+    local    outputLine=""
+    local    containerWithPackDescriptionFromRepoFedora=""
+
+    shopt -s extglob
+
+    # XXX - only the first summary will be obtained.
+    read outputLine <<< "$( yum -C info ${packageName} 2>/dev/null | egrep "^Summary[[:space:]]*:[[:space:]]" )"
+
+    [ -z "${outputLine}" ] \
+        && echo "ERROR:${0}:${LINENO}: Not found description for package '${packageName}'." >&2 \
+        && return ${codeFailure}
+
+    outputLine="${outputLine/#Summary*([[:space:]]):*([[:space:]])/}"
+    outputLine="${outputLine/$'\n'/}"
+
+    containerWithPackDescriptionFromRepoFedora="${outputLine}"
+    eval ${containerNameForPackDescriptionFromRepoFedora}=\"'${containerWithPackDescriptionFromRepoFedora}'\"
+    return ${codeSuccess}
+}
+
+function getPackDescriptionFromRepoArchBang {
+    local  containerNameForPackDescriptionFromRepoArchBang="${1}"
+    local -r packageName="${2}"
+
+    local    textSummary=""
+
+    shopt -s extglob
+
+    textSummary="$( pacman -S --search "^${packageName}$" )"
+    [ -z "${textSummary}" ] \
+        && return ${codeFailure}
+    textSummary="${textSummary/#*$'\n'    /}"
+    eval ${containerNameForPackDescriptionFromRepoArchBang}=\"'${textSummary}'\"
+    return ${codeSuccess}
+}
+
+function getPackManagerExecutableName {
+    local -r packsManagerLocalName="${1}"
+    local executableName=""
+    if [ "${packsManagerLocalName}" == "${distroFamilyUbuntu}" ] ; then
+        executableName="apt-get"
+    elif [ "${packsManagerLocalName}" == "${distroFamilyFedora}" ] ; then
+        executableName="yum"
+    elif [ "${packsManagerLocalName}" == "${distroFamilyArchBang}" ] ; then
+        executableName="pacman"
+    fi
+    echo "${executableName}"
+}
+
+function getPackManagerOptionsSet {
+    local -r packsManagerLocalName="${1}"
+    local    packsManagerOptionsList=""
+
+    shopt -s extglob
+
+    if [ "${packsManagerLocalName}" == "${distroFamilyUbuntu}" ]
+    then
+        [ "${noDryRun}" != "true" ] \
+            && packsManagerOptionsList="--simulate ${packsManagerOptionsList}"
+        [ "${downloadOnly}" == "true" ] \
+            && packsManagerOptionsList="--download-only ${packsManagerOptionsList}"
+        [ "${packManAssumeYes}" == "true" ] \
+            && packsManagerOptionsList="--yes ${packsManagerOptionsList}"
+        packsManagerOptionsList="install ${packsManagerOptionsList}"
+    elif [ "${packsManagerLocalName}" == "${distroFamilyFedora}" ]
+    then
+        [ "${noDryRun}" != "true" ] \
+            && packsManagerOptionsList=""
+        # See 'man yumdownloader'. Download is done via separate utility.
+        [ "${downloadOnly}" == "true" ] \
+            && packsManagerOptionsList=""
+        [ "${packManAssumeYes}" == "true" ] \
+            && packsManagerOptionsList="--assumeyes ${packsManagerOptionsList}"
+        packsManagerOptionsList="install ${packsManagerOptionsList}"
+    elif [ "${packsManagerLocalName}" == "${distroFamilyArchBang}" ]
+    then
+        [ "${noDryRun}" != "true" ] \
+            && echo "ERROR:${0}:${LINENO}: Not implemented 'dry run'." >&2 \
+            && packsManagerOptionsList=""
+        [ "${downloadOnly}" == "true" ] \
+            && echo "ERROR:${0}:${LINENO}: Not implemented 'download only'." >&2 \
+            && packsManagerOptionsList=""
+        [ "${packManAssumeYes}" == "true" ] \
+            && packsManagerOptionsList="--noconfirm ${packsManagerOptionsList}"
+        packsManagerOptionsList="-Syyu ${packsManagerOptionsList}"
+    fi
+    packsManagerOptionsList="${packsManagerOptionsList/%*([[:space:]])/}"
+    echo "${packsManagerOptionsList}"
+}
+
+function getAllPackagesNamesFromFile {
+    local    containerNameForAllPackagesNamesFromFile="${1}"
+    local -r filePacksList="${2}"
+
+    local    packagesNamesFromSinglePool=""
+    local    allCollectedPackagesNames=""
+    local -i relativePosition=""
+    local    singleInputLine
+
+    shopt -s extglob
+
+    markerIsOverPoolsDescriptionArea=${codeOutsidePacksPoolsArea}
+
+    while read singleInputLine ; do
+
+        atTheBorderSwitchTrigger "markerIsOverPoolsDescriptionArea" \
+                                        "${markerIsOverPoolsDescriptionArea}" \
+                                        "${singleInputLine}" \
+            && continue
+
+        [ "${markerIsOverPoolsDescriptionArea}" == "${codeOutsidePacksPoolsArea}" ] \
+            && continue
+
+        isActivePackagesPool "packagesNamesFromSinglePool" "${singleInputLine}" \
+            && allCollectedPackagesNames="${allCollectedPackagesNames} ${packagesNamesFromSinglePool}"
+
+    done < "${filePacksList}"
+
+    allCollectedPackagesNames="${allCollectedPackagesNames/#*([[:space:]])/}" # Strip leading space.
+    rotateDelimetersSpaceAndLineEnd "allCollectedPackagesNames" "${allCollectedPackagesNames}"
+
+    eval ${containerNameForAllPackagesNamesFromFile}=\"'${allCollectedPackagesNames}'\"
+}
+
+function atTheBorderSwitchTrigger {
+    local -r containerNameForSwitchValue="${1}"
+    local -r stateInOrOut="${2}"
+    local -r possibleBorderSign="${3}"
+    local    newPosition=""
+    local    exitCode=""
+
+    containerWithSwitchValue="${stateInOrOut}"
+    exitCode=${codeFailure}
+
+    isMarkerStart "${possibleBorderSign}" \
+        && [ "${stateInOrOut}" == "${codeOutsidePacksPoolsArea}" ] \
+        && containerWithSwitchValue="${codeInsidePacksPoolsArea}" \
+        && exitCode="${codeSuccess}"
+    isMarkerStop "${possibleBorderSign}" \
+        && [ "${stateInOrOut}" == "${codeInsidePacksPoolsArea}" ] \
+        && containerWithSwitchValue="${codeOutsidePacksPoolsArea}" \
+        && exitCode="${codeSuccess}"
+
+    eval ${containerNameForSwitchValue}=\"'${containerWithSwitchValue}'\"
+    return ${exitCode}
+}
+
+function rotateDelimetersSpaceAndLineEnd {
+    local -r containerNameForLineToBeRotated="${1}"
+    local -r inputLine="${2}"
+
+    local delimeterInListUsed=""
+    local delimeterInListReplacement=""
+    local containerWithLineToBeRotated=""
+
+    if [ "${showListAsLine}" == "true" ]
+    then
+        delimeterInListUsed=$'\n'
+        delimeterInListReplacement=" "
+    elif [ "${showListAsColumn}" == "true" ]
+    then
+        delimeterInListUsed=" "
+        delimeterInListReplacement=$'\n'
+    else
+        delimeterInListUsed=$'\n'
+        delimeterInListReplacement=" "
+    fi
+    containerWithLineToBeRotated="${inputLine//${delimeterInListUsed}/${delimeterInListReplacement}}"
+
+    eval ${containerNameForLineToBeRotated}=\"'${containerWithLineToBeRotated}'\"
+}
+
+function isMarkerStart {
+    # search start marker for list of packages to be installed
+    local -r objectToBeTested="${1}"
+    strippedObject="$( sed "s/${markerStartId}//" <<< "${objectToBeTested}" )"
+    [ "${#objectToBeTested}" != "${#strippedObject}"  ] \
+        && return ${codeSuccess}
+    return ${codeFailure}
+}
+
+function isMarkerStop {
+    # search stop marker for list of packages to be installed
+    local -r objectToBeTested="${1}"
+    strippedObject="$( sed "s/${markerFinishId}//" <<< "${objectToBeTested}" )"
+    [ "${#objectToBeTested}" != "${#strippedObject}"  ] \
+        && return ${codeSuccess}
+    return ${codeFailure}
+}
+
+function getSinglePackDepsAndArchList {
+    local -r containerNameForSinglePackDepsAndArchList="${1}"
+    local -r targetPackName="${2}"
+    local -r packsManagerLocalName="${3}"
+
+    local    formatedDepsList=""
+
+    [ -z "${targetPackName}" ] \
+        && echo "ERROR:${0}:${LINENO}: Package name is void." >&2 \
+        && errorState=${errorMisc} \
+        && return ${codeFailure}
+
+    [ -z "${packsManagerLocalName}" ] \
+        && echo "ERROR:${0}:${LINENO}: Packages Management system Id is void." >&2 \
+        && errorState=${errorMisc} \
+        && return ${codeFailure}
+
+    # XXX - Architecture set shown as reported by Packages Management system.
+    #       The set may be redundant.
+
+    if [ "${packsManagerLocalName}" == "${distroFamilyUbuntu}" ]
+    then
+        getFormatedDepsListFromAptDeb "formatedDepsList" "${targetPackName}"
+    elif [ "${packsManagerLocalName}" == "${distroFamilyFedora}" ]
+    then
+        getFormatedDepsListFromYumRpm "formatedDepsList" "${targetPackName}"
+    elif [ "${packsManagerLocalName}" == "${distroFamilyArchBang}" ]
+    then
+        getFormatedDepsListFromPackmanTar "formatedDepsList" "${targetPackName}"
+    else
+        echo "ERROR:${0}:${LINENO}: Unknown Packages Managment system identifier '${packsManagerLocalName}'." >&2 \
+        errorState=${errorMisc}
+        return ${codeFailure}
+    fi
+    eval ${containerNameForSinglePackDepsAndArchList}=\"'${formatedDepsList}'\"
+    return ${codeSuccess}
+}
+
+function isPackageInstalled {
+    local -r targetPackName="${1}"
+    local -r packsManagerLocalName="${2}"
+
+    [ -z "${targetPackName}" ] \
+        && echo "ERROR:${0}:${LINENO}: Package name is void." >&2 \
+        && errorState=${errorMisc} \
+        && return ${codeFailure}
+
+    [ -z "${packsManagerLocalName}" ] \
+        && echo "ERROR:${0}:${LINENO}: Packages Management system Id is void." >&2 \
+        && errorState=${errorMisc} \
+        && return ${codeFailure}
+
+    # XXX - Architecture set shown as reported by Packages Management system.
+    #       The set may be redundant.
+
+    if [ "${packsManagerLocalName}" == "${distroFamilyUbuntu}" ]
+    then
+        echo "ERROR:${0}:${LINENO}: This action is not implemented yet for '${distroFamilyUbuntu}'." >&2
+        errorState=${errorMisc}
+        return ${codeFailure}
+
+    elif [ "${packsManagerLocalName}" == "${distroFamilyFedora}" ]
+    then
+        rpm -q "${targetPackName}" 1>/dev/null 2>/dev/null \
+            && return ${codeSuccess}
+    elif [ "${packsManagerLocalName}" == "${distroFamilyArchBang}" ]
+    then
+        pacman -Q "${targetPackName}" 1>&2>/dev/null \
+            && return ${codeSuccess}
+    else
+        echo "ERROR:${0}:${LINENO}: Unknown Packages Managment system identifier '${packsManagerLocalName}'." >&2
+        errorState=${errorMisc}
+        return ${codeFailure}
+    fi
+    return ${codeFailure}
+}
+
+function getFormatedDepsListFromAptDeb {
+    local -r containerNameForFormatedDepsListFromAptDeb="${1}"
+    local -r targetPackName="${2}"
+
+    local    outputString=""
+
+    [ -z "${targetPackName}" ] \
+        && echo "ERROR:${0}:${LINENO}: Package name is void." >&2 \
+        && errorState=${errorMisc} \
+        && return ${codeFailure}
+
+    echo "ERROR:${0}:${LINENO}: Show dependencies list is not implemented for AptDeb system." >&2
+    [ ${errorState} != ${noError} ] \
+        && errorState=${errorMisc}
+    return ${codeFailure}
+
+    outputString="${outputString/%+([[:space:]])/}"
+    eval ${containerNameForFormatedDepsListFromAptDeb}=\"'${outputString}'\"
+    return ${codeSuccess}
+}
+
+function getFormatedDepsListFromYumRpm {
+    local -r containerNameForFormatedDepsListFromYumRpm="${1}"
+    local -r targetPackName="${2}"
+
+    local    outputString=""
+    local    IFSbackup=""
+    local    dependenciesList=""
+
+    [ -z "${targetPackName}" ] \
+        && echo "ERROR:${0}:${LINENO}: Package name is void." >&2 \
+        && errorState=${errorMisc} \
+        && return ${codeFailure}
+
+    shopt -s extglob
+
+    dependenciesList="$( yum -C deplist "${targetPackName}" | egrep "^[[:space:]]+provider:[[:space:]]" )"
+    [ -z "${dependenciesList}" ] \
+        && echo "WARNING:${0}:${LINENO}: Not found information about dependencies for package '${targetPackName}'." >&2 \
+        && errorState=${errorMisc} \
+        && return ${codeFailure}
+
+    IFSbackup="${IFS}"
+    IFS=". "
+    while read stub1 packName packArch stub2 ; do
+        outputString="${outputString}${packName} ${packArch} "
+    done <<< "${dependenciesList}"
+    IFS="${IFSbackup}"
+    outputString="${outputString/%+([[:space:]])/}"
+    eval ${containerNameForFormatedDepsListFromYumRpm}=\"'${outputString}'\"
+    return ${codeSuccess}
+}
+
+function getFormatedDepsListFromPackmanTar {
+    local -r containerNameForFormatedDepsListFromPackmanTar="${1}"
+    local -r targetPackName="${2}"
+
+    local    outputString=""
+    local    descriptiveText=""
+    local    dependenciesList
+
+    [ -z "${targetPackName}" ] \
+        && echo "ERROR:${0}:${LINENO}: Package name is void." >&2 \
+        && errorState=${errorMisc} \
+        && return ${codeFailure}
+
+    descriptiveText="$( pacman -Si "${targetPackName}" 2>/dev/null )" \
+        ; [ ${?} != 0 ] \
+            && echo "ERROR:${0}:${LINENO}: Not found package '${targetPackName}'." >&2 \
+            && errorState=${errorMisc} \
+            && return ${codeFailure}
+    dependenciesList="$( \
+            awk \
+                -F ": " \
+                -v searchToken="Depends On     " \
+                ' \
+                   $0 ~ searchToken \
+                    { \
+                        gsub(/[>=<]*[0-9.\-]* /," ",$2) ; \
+                        gsub(/ +/,"\n",$2) ; \
+                        print $2 ; \
+                    } \
+                ' <<< "${descriptiveText}" \
+        )"
+    while read packName ; do
+        #getPackageArchitectyreFromPackmanTar "packArch" "${dependencyDescriptiveText}"
+        packArch="-"
+        outputString="${outputString}${packName} ${packArch} "
+    done <<< "${dependenciesList}"
+
+    outputString="${outputString/%+([[:space:]])/}" # Strip trailing space.
+    eval ${containerNameForFormatedDepsListFromPackmanTar}=\"'${outputString}'\"
+    return ${codeSuccess}
+}
+
+#function getPackageArchitectyreFromPackmanTar {
+    #local -r containerNameForPackageArchitectyreFromPackmanTar="${1}"
+    #local -r inputDescriptiveText="${2}"
+
+    #local    outputString=""
+    #local    packageArchitecture
+    #local    IFSbackup=""
+    #local    stubArchitecFieldName=""
+
+    #IFSbackup="${IFS}"
+    #IFS=":"
+    #read stubArchitecFieldName packageArchitecture <<< "${inputDescriptiveText}"
+    #IFS="${IFSbackup}"
+    #eval ${containerNameForPackageArchitectyreFromPackmanTar}=\"'${packageArchitecture}'\"
+#}
+
+function printoutResultingPackNameAndDeps {
+    local -r  targetPackName="${1}"
+    local -ra depsAndArchList=(${2})
+    local -r  distributionFamily="${3}"
+
+    local     packName=""
+    local     packArch=""
+    local     repoSummary=""
+    local -i  idx=0
+
+    [ -z "${targetPackName}" ] \
+        && echo "ERROR:${0}:${LINENO}: Package name is void." >&2 \
+        && errorState=${errorMisc} \
+        && return ${codeFailure}
+    [ -z "${distributionFamily}" ] \
+        && echo "ERROR:${0}:${LINENO}: Packages Management system Id is void." >&2 \
+        && errorState=${errorMisc} \
+        && return ${codeFailure}
+
+    isPackAlreadyOnBoard="NOT installed"
+    isPackageInstalled "${targetPackName}" "${distributionFamily}" \
+        && isPackAlreadyOnBoard="installed"
+
+    echo     ""
+    echo -n  "${targetPackName}"
+    echo -en "\t"
+    echo     "(${isPackAlreadyOnBoard}), depends on:"
+
+    #"${tabsBin}" 3,+24,+4,+8,+8,+8,+8,+8,+8,+8,+8,+8,+8,+8,+8,+8,+8,+8,+8,+8,+8,+8,+8,+8,+8,+8
+    for (( idx=0 ; idx<${#depsAndArchList[@]} ; idx+=2 )) ; do
+        packName="${depsAndArchList[idx]}"
+        packArch="${depsAndArchList[idx+1]}"
+        getPackDescriptionFromRepository "repoSummary" "${depsAndArchList[idx]}" "${distributionFamily}"
+        echo -en "\t"
+        echo -n  "${packName}"
+        echo -en "\t"
+        echo -n  "${packArch}"
+        echo -en "\t"
+        echo     "${repoSummary}"
+
+        unset packName
+        unset packArch
+        unset repoSummary
+    done
+}
+
+function reportActualiseActionStatistic {
+    local -ri counterTotal="${1}"
+    local -ri counterPartiallyMissed="${2}"
+    local -ri counterAllMissed="${3}"
+
+    echo "INFORMATION:${0}:${LINENO}: Processed '${counterTotal}' active pool(s)." >&2
+
+    [ ${counterPartiallyMissed} != 0 ] \
+        && echo "INFORMATION:${0}:${LINENO}: Disabled '${counterPartiallyMissed}' pool(s) with some packs names not found in repository database." >&2
+
+    [ ${counterAllMissed} != 0 ] \
+        && echo "INFORMATION:${0}:${LINENO}: Disabled '${counterAllMissed}' pool(s) with nothing found at all." >&2
+
+    [ "$(( ${counterPartiallyMissed} + ${counterAllMissed} ))" != "0" ] \
+        && echo "INFORMATION:${0}:${LINENO}: Left '$(( ${counterTotal} - ${counterPoolWithMissedPackages} ))' active pool(s)." >&2
+}
+
+
+function getThisName {
+    # This function may be more elegant way to heal a path.
+
+    local dName="$( dirname "${0}" )"
+    local fName="$( basename "${0}" )"
+
+    [ "${dName}" == "." ] && dName="$( pwd )"
+    echo "${dName}/${fName}"
+}
+
+function validatePreLaunch {
+
+    echo "INFORMATION:${0}:${LINENO}: Started with process Id '$$'." >&2
+
+    [ -z "${fileWithPacksPoolsDescriptions}" ] \
+        && fileWithPacksPoolsDescriptions="$( getThisName "${0}" )" \
+        && echo "INFORMATION:${0}:${LINENO}: Script body '$( basename "${0}" )' is choosen as packages list source. It may be OK." >&2
+    [ ! -f "${fileWithPacksPoolsDescriptions}" ] \
+        && echo "ERROR:${0}:${LINENO}: Not found file specified to be used as packages list container '${fileWithPacksPoolsDescriptions}'." >&2 \
+        && errorState=${errorMisc}
+
+    [ ! -f "${fileOutputTemporary}" ] \
+        && echo "ERROR:${0}:${LINENO}: Failed to create '${fileOutputTemporary}'." >&2 \
+        && errorState=${errorMisc}
+
+    [ -z "${distroFamilySelectedByUser}" ] \
+        && distroFamilySelectedByUser="${distroFamilyDEFAULT}" \
+        && echo "WARNING:${0}:${LINENO}: As a distribution family was not specified, choosen default value '${distroFamilySelectedByUser}'. Try with '--help' option." >&2
+
+    ! isKnownDistroFamily "${distroFamilySelectedByUser}" \
+        && echo "ERROR:${0}:${LINENO}: Distribution family name '${distroFamilySelectedByUser}' is not valid." >&2 \
+        && errorState=${errorMisc}
+
+    [ -z "${distroVersionSelectedByUser}" ] \
+        && distroVersionSelectedByUser="${distroVersionDEFAULT}" \
+        && echo "WARNING:${0}:${LINENO}: As a distribution version was not specified, choosen default value '${distroVersionSelectedByUser}'. Try with '--help' option." >&2
+
+
+    ! which "${tabsBin}" 1>/dev/null 2>/dev/null \
+        && echo "WARNING:${0}:${LINENO}: Not installed program '${tabsBin}'." >&2
+
+
+    [ ${errorState} != ${noError} ] \
+        && echo "ERROR:${0}:${LINENO}: Failed while prelaunch processing." >&2 \
+        && exit ${errorState}
+}
+
+function generatePackagesListingExample {
+    local -r activePoolStartMark="${markerPackagesListStart/#\\/}" # Remove reg.expressions shields.
+    local -r passivePoolStartMark="${markerStringToBeIgnoredStart/#\\/}" # Remove reg.expressions shields.
+echo "
+#### ${markerStartId}
+# #
+ #
+#
+
+########################
+## Example of commentary
+
+## This line will not be parsed as packages names pool.
+
+########################
+## Development packages:
+
+${activePoolStartMark}gcc auto-tools${delimeterMainFields}${distroFamilyDEFAULT}${delimeterMainFields}${distroVersionDEFAULT}${delimeterMainFields}GNU C Compiller and tools.
+
+###############
+## Text editors
+
+${activePoolStartMark}leafpad${delimeterMainFields}${distroFamilyUNExistent}${delimeterMainFields}${distroFamilyUNExistent}${delimeterMainFields}Text editor, LXDE satellite.${delimeterDescriptionFromRepo}GTK+ based simple text editor.
+${activePoolStartMark}geany${delimeterMainFields}${distroFamilyUNExistent}${delimeterMainFields}${distroVersionDEFAULT}${delimeterMainFields}Small and fast Integrated Development Environment, text editor.
+${activePoolStartMark}medit${delimeterMainFields}${distroFamilyArchBang}${delimeterMainFields}${distroVersionArchBangFormat}${delimeterMainFields}Is absent in some distributions.
+${passivePoolStartMark}ImageMagic${delimeterMainFields}${distroFamilyUNExistent}${delimeterMainFields}${distroVersionDEFAULT}${delimeterMainFields}Fedora have names with capitalised letters. Some Yum's parts are case sensiteve, others - not.
+
+${passivePoolStartMark}${distroFamilyDEFAULT} ${distroVersionDEFAULT}${delimeterInNotFoundField}total-commander${delimeterInNotFoundField}total-commander total-commander-plugins${delimeterBetweenMissedAndFoundGroups}midnight-commander${delimeterMainFields}${distroFamilyDEFAULT}${delimeterMainFields}${distroVersionDEFAULT}${delimeterMainFields}There is no highly functional, flexible, easy extensible file managers in nix like OS. SpaceFM may become such a good program, or may be Double commander.
+
+#
+ #
+# #
+#### ${markerFinishId}
+
+# Here - below is a script body,
+# may be placed anywhere outside space between two markers:
+#    # ${markerStartId}
+#    and
+#    # ${markerFinishId}
+
+#!/bin/bash
+echo 'Hello world.'
+"
+}
+
+function showDoc {
+    local -i terminalHeidht=0
+    local -i terminalWidth=0
+    local    docText=""
+
+    local    activePoolStartMark=""
+    local    passivePoolStartMark=""
+
+    activePoolStartMark="${markerPackagesListStart/#\\/}" # Remove reg.expressions shields.
+    passivePoolStartMark="${markerStringToBeIgnoredStart/#\\/}" # Remove reg.expressions shields.
+
+    read terminalHeidht terminalWidth misc <<< "$( stty size )"
+
+docText="
+NAME
+
+    Packages List Processor - PLP.
+
+SYNOPSIS
+
+    $( basename "$0" ) action options
+
+DESCRIPTION
+
+    PLP is a tool to operate with a list of packages to be installed on a system, to check whether they are all available from system software repository.
+
+    This script will parse himself, or other specified file, and try to find a list of packages to be installed. After this it can show the list and try to simulate installation, real install possible when apropriate option is used.
+
+    PLP will not recognize distribution family, where it is going to be launched. User must specify appropriate names and constants via command line arguments. See below the list of supported distribution families.
+
+ACTIONS
+
+    --show-command
+
+        Show install simulation command based on packages list.
+
+    --show-deps
+
+        Show list with dependencies.
+
+    --actualise-list
+
+        Try to find in repository every package from a list in a specified file.
+
+        If some packages were not found, the string from the list will be disabled and rearranged to be a list of packages splited onto missed and found. Head package name explicitly will be kept.
+
+    --detect-if-not-in-repository
+
+        Test whether or not a package from list may be found in repository database. Not implemented, use '--actualise-list'.
+
+    --show-list
+
+        Show list with possible several package names per line.
+
+    --generate-packs-list-example
+
+        Will output text sample with content of a file with packages list. It is possible to have inside a single file package list and this script.
+
+        One may even do '$( basename "${0}" ) ... > /tmp/example.conf' and explore the result.
+
+    --ufw-arm
+
+        Turn on UFW firewall. Try insert rules (UFW may be smart enough to skip already created rules).
+
+    --ufw-flush
+
+        Flush UFW rules.
+
+    --ufw-down
+
+        Turn off UFW firewall, but keep rules.
+
+    --help
+
+        Show some documentation.
+
+OPTIONS
+
+    --input-file=filename
+
+        Properly formated file with packages list.
+
+    --distro-family=(${distroFamilyUbuntu}|${distroFamilyFedora}|${distroFamilyArchBang})
+
+        Will affect selection of a package managment system to be used while list processing. If a package was not found, the pool with this package will be marked with this value. If not specified, default hardcoded value will be used.
+
+    --distro-version=(${distroVersionUbuntuFormat}|${distroVersionFedoraFormat}|${distroVersionArchBangFormat})
+
+        Where
+
+            ${distroVersionUbuntuFormat},
+            ${distroVersionFedoraFormat},
+            ${distroVersionArchBangFormat}
+
+        are version sign formats corresponding to distribution families
+
+            ${distroFamilyUbuntu},
+            ${distroFamilyFedora},
+            ${distroFamilyArchBang}.
+
+        If a package was not found, the pool with this package will be marked with this value. If not specified, default hardcoded value will be used.
+
+    --do-not-skip-marked
+
+        Do not skip packages pools marked in a list as to be skipped while processing for a specified distribution family. This is helpful for revalidation of whole list, for example, after distribution's major version change, etc.
+
+    --add-repo-description
+
+        Add into list packages descriptions to be obtained from repository. They are added at the end of list items, after separator '${delimeterDescriptionFromRepo}'.
+
+    --as-column
+
+        Show list as one package name per line.
+
+    --as-line
+
+        Show list as single line with packages names.
+
+    --no-dry-run
+
+        Do not insert 'simulate', 'dry-run' or similar option.
+
+    --download-only
+
+        Only download packages.
+
+    --yes
+
+        Assume 'YES' for all questions. (Not implemented for firewall.)
+
+    May be specified several UFW manipulatuon actions. They will be processed in order they are mentioned in command line.
+
+    UFW manipulation actions have higher priority than package installation ones. If an UFW action is found, only firewall actions will be processed.
+
+    Options may be mixed, but there are some not sensible combinations.
+
+    Operations with packages search and similar are done using local, offline repository database.
+
+PACKAGES LIST FORMAT AND PROCESSING
+
+    A line from a file will be assumed and correctly processed as packages names containig pool when:
+
+        - The line to be processed is between two lines with markers '# ${markerStartId}' and '# ${markerFinishId}'.
+
+        - The line is started with marker '${activePoolStartMark}'.
+
+        - The line contains four text fields delimeted with '${delimeterMainFields}':
+
+            1 - space separated list of packages names, 2 - space separated list of distributions family names, 3 - space separated list of distributions versions, 4 - a text, descriptive text.
+
+    There is no correctness validation for a line started with '${activePoolStartMark}'.
+
+    Other lines or started with '${passivePoolStartMark}' are ignored. They are simply printed out without changes.
+
+    Packages pool will be ignored if family name requested via command line is equal one of family names specified in the dedicated field of a line from list.
+
+    If a line is \"disabled\" in any way, for example, due to package was not found in repository, the line will not be processed while any subsequent relaunch of the list parsing.
+
+    Active line format:
+
+        <line begining>${activePoolStartMark}head-package other-package yet-another-package${delimeterMainFields}distributionFamily${delimeterMainFields}distributionVersion${delimeterMainFields}Descriptive text.<line end>
+
+    A line with a result of a request to add description from repository:
+
+        <line begining>${activePoolStartMark}head-package other-package yet-another-package${delimeterMainFields}distributionFamily${delimeterMainFields}distributionVersion${delimeterMainFields}Descriptive text.${delimeterDescriptionFromRepo}Robo added, obtained from repository description of the head package.<line end>
+
+    Format of a line to be produced instead of an 'active' line, if source line contains packages missed in repositories:
+
+        <line begining>${passivePoolStartMark}userRequstedDisributionFamily userRequestedDistributionVersion${delimeterInNotFoundField}head-package${delimeterInNotFoundField}missed-package-first missed-package-next${delimeterBetweenMissedAndFoundGroups}found-package-first found-package-next${delimeterMainFields}distributionFamily${delimeterMainFields}distributionVersion${delimeterMainFields}Description obtained from list in the input file.${delimeterDescriptionFromRepo}Robo added, obtained from repository description of the head package, if the head package was found.<line end>
+
+    Quantity of spaces and space symbols is significant (obsolete).
+
+    The first package to be mentioned in a line-list (pool) expected to be 'head package', others are expected to be dependencies or satellites. This affect only the way how summary text from a repository will be processed. Description from repository is obtained only for the first object in a list, if it was found in repository.
+
+    Launch this script with '--generate-packs-list-example' option (should be first option among specified, if several...) to see formatting and content example of a list with packages.
+
+COPYRIGHT AND LICENCE
+
+    Copyright © 2009-2012 Alex Vesev. License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
+
+    This is free software: you are free to change and redistribute it. There is NO WARRANTY, to the extent permitted by law.
+"
+
+# ??? Both - fmt, stty - in 'coreutils' package.
+which fmt 1>&2>/dev/null \
+    && which stty 1>&2>/dev/null \
+    && [ "${terminalWidth}" -gt 16 ] \
+    && echo "${docText}" | fmt --crown-margin --width=${terminalWidth} \
+    && return ${codeSuccess}
+echo "${docText}"
+
+}
+
+    ##################
+    ##  Firewall setup
+function ufw_arm { # wake up ufw with rules
+ufwb="ufw"
+H_IP="192.168.68.30"
+H_LAN="192.168.68.0/24"
+W_LAN="192.168.0.0/22"
+W_DMZ="172.17.1.0/24"
+$ufwb default deny
+$ufwb logging on
+$ufwb allow 443/tcp
+$ufwb limit 20/tcp
+$ufwb limit 21/tcp
+$ufwb limit 22/tcp
+$ufwb limit 21212/tcp
+$ufwb limit 2273/tcp
+#$ufwb limit in proto tcp from any to any port 22122,22123:22125
+#$ufwb allow in proto tcp from any to any port 22122,22123:22125
+$ufwb allow in proto tcp from any to any port 22122,22123:22125
+$ufwb allow in to any port 7992
+$ufwb allow in on virbr0 # KVM-QEmu
+$ufwb allow in on virbr1 # KVM-QEmu
+#$ufwb allow in proto tcp from ${H_LAN} to any port 21212
+#$ufwb allow in proto tcp from ${H_LAN} to any port 2273
+#$ufwb allow in proto tcp from ${H_LAN} to any port 22122
+#$ufwb allow in proto tcp from ${W_LAN} to any port 22122
+$ufwb deny in from any to any
+$ufwb enable
+$ufwb status verbose
+}
+
+function ufw_flush {
+    while echo "y" | ufw delete 1 2>/dev/null > /dev/null ; do
+        true
+    done
+    ufw status verbose
+}
+
+function ufw_down {
+    ufw disable
+    ufw status verbose
+}
+
+    ##  Firewall setup
+    ##################
+
+## functions declarations
+#########################
+
+##########################
+##  command line arguments
+
+declare -r fileOutputTemporary="$( mktemp )"
+trap "rm -f \"${fileOutputTemporary}\"" EXIT INT TERM
+
+[ ${#} == 0 ] \
+    && showDoc \
+    && exit ${errorMisc}
+
+declare -i actionIndex=0
+declare -a routineName=""
+unset routineName[@]
+while [ ${#} != 0 ] ; do
+    argument="${1#--}" # Strip leading '--'.
+    argument="${argument%%=*}" # Strip trailing '=*'
+    case "${argument}" in
+    help|-h|h)
+        showDoc
+        exit ${noError}
+    ;;
+
+# Actions and Routines
+    ufw-flush)
+        [ -z "${firewallProcessing}" ] \
+            && declare -r firewallProcessing="true"
+        [ -z "${routineName}" ] \
+            && routineName="${argument}"
+    ;;
+    ufw-down)
+        [ -z "${firewallProcessing}" ] \
+            && declare -r firewallProcessing="true"
+        [ -z "${routineName}" ] \
+            && routineName="${argument}"
+    ;;
+    ufw-arm)
+        [ -z "${firewallProcessing}" ] \
+            && declare -r firewallProcessing="true"
+        [ -z "${routineName}" ] \
+            && routineName="${argument}"
+    ;;
+    generate-packs-list-example)
+        generatePackagesListingExample
+        exit ${noError}
+    ;;
+    actualise-list)
+        [ -z "${routineName}" ] \
+            && routineName="${argument}"
+    ;;
+    show-command)
+        declare -r showListAsLine="true"
+        [ -z "${routineName}" ] \
+            && routineName="${argument}"
+    ;;
+    show-deps)
+        declare -r showListAsColumn="true"
+        [ -z "${routineName}" ] \
+            && routineName="${argument}"
+    ;;
+    show-list)
+        declare -r showListAsColumn="true"
+        [ -z "${routineName}" ] \
+            && routineName="${argument}"
+    ;;
+
+# Options and modifiers
+    input-file|if)
+        [ -z "${fileWithPacksPoolsDescriptions}" ] \
+            && fileWithPacksPoolsDescriptions="${1#*=}"
+    ;;
+    distro-family)
+        [ -z "${distroFamilySelectedByUser}" ] \
+            && distroFamilySelectedByUser="${1#*=}"
+    ;;
+    distro-version)
+        [ -z "${distroVersionSelectedByUser}" ] \
+            && distroVersionSelectedByUser="${1#*=}"
+    ;;
+    do-not-skip-marked)
+        [ -z "${doNotSkipMarkedLine}" ] \
+            && doNotSkipMarkedLine="true"
+    ;;
+    as-column)
+        # If 'line' mode is already ordered,
+        # then no 'column' mode:
+        [ -z "${showListAsLine}" ] \
+            && [ -z "${showListAsColumn}" ]\
+            && declare -r showListAsColumn="true"
+    ;;
+    as-line)
+        # If 'column' mode, then no 'line' mode:
+        [ -z "${showListAsColumn}" ] \
+            && [ -z "${showListAsLine}" ] \
+            && declare -r showListAsLine="true"
+    ;;
+    no-dry-run)
+        [ -z "${noDryRun}" ] \
+            && declare -r noDryRun="true"
+    ;;
+    download-only)
+        [ -z "${downloadOnly}" ] \
+            && declare -r downloadOnly="true"
+    ;;
+    yes)
+        [ -z "${packManAssumeYes}" ] \
+            && declare -r packManAssumeYes="true"
+    ;;
+    add-repo-description)
+        [ -z "${isWantedPackDescriptionEvaluation}" ] \
+            && declare -r isWantedPackDescriptionEvaluation="true"
+    ;;
+    *)
+        echo "ERROR:${0}:${LINENO}: Unknown argument '${argument}'. Try '--help' argument. " >&2
+        errorState=${errorMisc}
+    ;;
+    esac
+    shift 1
+done
+validatePreLaunch
+declare -r fileWithPacksPoolsDescriptions="${fileWithPacksPoolsDescriptions}"
+declare -r distroFamilySelectedByUser="${distroFamilySelectedByUser}"
+declare -r distroVersionSelectedByUser="${distroVersionSelectedByUser}"
+declare -r doNotSkipMarkedLine="${doNotSkipMarkedLine}"
+
+##  command line arguments
+##########################
+
+if [ "${firewallProcessing}" == "true" ] ; then
+    for (( idx=0 ; idx<${#routineName[@]} ; idx++ )) ; do
+        case "${routineName[idx]}" in
+        ufw-flush)
+            ufw_flush
+        ;;
+        ufw-down)
+            ufw_down
+        ;;
+        ufw-arm)
+            ufw_arm
+        ;;
+        esac
+    done
+    exit ${errorState}
+fi
+
+case "${routineName}" in
+actualise-list)
+    isParserArmed="false"
+    counterPoolWithMissedPackages=0
+    counterPoolWithPartiallyMissedPackages=0
+    counterPoolWithNothingFoundAtAll=0
+    counterTotalNumberOfPoolsWithPacks=0
+    while read singleLine ; do # XXX - Bug: if script is parsing itself, 'read' built in will demonstrate unwanted behaviour. It is significant for output only.
+        isMarkerStart "${singleLine}" \
+            && [ "${isParserArmed}" != "true" ] \
+            && isParserArmed="true"
+        isMarkerStop "${singleLine}" \
+            && [ "${isParserArmed}" == "true" ] \
+            && isParserArmed="false"
+        case "${isParserArmed}" in
+        true)
+            if fabricFormatedPool "formatedOutputLineWithPacksAndDescriptions" \
+                                    "${singleLine}"
+            then
+                echo "${formatedOutputLineWithPacksAndDescriptions}"
+                isTokenInsideString "${delimeterInNotFoundField}" "${formatedOutputLineWithPacksAndDescriptions}" \
+                    && ((counterPoolWithMissedPackages++))
+                isTokenInsideString "${markerPoolWithNothingFoundAtAll}" "${formatedOutputLineWithPacksAndDescriptions}" \
+                    && ((counterPoolWithNothingFoundAtAll++))
+                ((counterTotalNumberOfPoolsWithPacks++))
+            else
+                echo "${singleLine}"
+            fi
+        ;;
+        false)
+            echo "${singleLine}"
+        ;;
+        esac
+    done < "${fileWithPacksPoolsDescriptions}"
+
+    counterPoolWithPartiallyMissedPackages=$(( ${counterPoolWithMissedPackages} - ${counterPoolWithNothingFoundAtAll} ))
+    reportActualiseActionStatistic "${counterTotalNumberOfPoolsWithPacks}" \
+                                        "${counterPoolWithPartiallyMissedPackages}" \
+                                        "${counterPoolWithNothingFoundAtAll}"
+    exit ${errorState}
+;;
+show-deps)
+    packsManExecutName="$( getPackManagerExecutableName "${distroFamilySelectedByUser}" )"
+    packsManagerOptions="$( getPackManagerOptionsSet "${distroFamilySelectedByUser}" )"
+    getAllPackagesNamesFromFile "fullListOfPacks" "${fileWithPacksPoolsDescriptions}"
+    while read singlePackName ; do
+        getSinglePackDepsAndArchList "singlePackDepsAndArchList" \
+                                        "${singlePackName}"\
+                                        "${distroFamilySelectedByUser}"
+        sortListOfLines "singlePackDepsAndArchList" \
+                            "${singlePackDepsAndArchList}"
+        printoutResultingPackNameAndDeps "${singlePackName}" \
+                                                "${singlePackDepsAndArchList}" \
+                                                "${distroFamilySelectedByUser}"
+    done <<< "${fullListOfPacks}"
+    exit ${errorState}
+;;
+show-command)
+    packsManExecutName="$( getPackManagerExecutableName "${distroFamilySelectedByUser}" )"
+    packsManagerOptions="$( getPackManagerOptionsSet "${distroFamilySelectedByUser}" )"
+    getAllPackagesNamesFromFile "fullListOfPacks" "${fileWithPacksPoolsDescriptions}"
+
+    todoCommand="sudo ${packsManExecutName} ${packsManagerOptions} ${fullListOfPacks}"
+    echo ""
+    echo "Requested command string prototype:"
+    echo ""
+    echo "    ${todoCommand}"
+    echo ""
+    echo "One may need to remove or purge:"
+    echo "    ttf-mscorefonts-installer gnome-screensaver NetworkManager"
+    echo ""
+    echo "One may need WiCd install after NetworkManager is purged."
+    echo ""
+    exit ${errorState}
+;;
+show-list)
+    getAllPackagesNamesFromFile "fullListOfPacks" "${fileWithPacksPoolsDescriptions}"
+    echo "${fullListOfPacks}"
+    exit ${errorState}
+;;
+*)
+    echo "ERROR:${0}:${LINENO}: Unknown routine name '${routineName}'."
+    errorState=${errorMisc}
+    exit ${errorState}
+;;
+esac
+
+exit ${errorState}

@@ -1,0 +1,11 @@
+TODO:
+
+    - Simulate install option.
+    - Download only implementation.
+
+BUGS:
+
+    - While self parsing program code formatting will be broken, only output.
+    - CLI Options must be evaluated after CLI actions have been parsed.
+    - Must be checked whether choosen distribution's package manager executable is present.
+    - Functions return value implementation is more fast then "$()", but it is error prone, huge relay on unique variables names. Still do not want to split the file, it must be monolith.
