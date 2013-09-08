@@ -1,5 +1,7 @@
 TODO:
 
     - Refactoring.
+    - Unify constants declarations.
+    - Implement some widely used functions as external module.
 
 BUGS:
