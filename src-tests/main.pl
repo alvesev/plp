@@ -20,7 +20,7 @@
 #
 ##
 
-package PackListProcessor;
+package PackListProcessorTests;
 
 use strict;
 use warnings;
@@ -28,12 +28,23 @@ use Carp;
 
 use File::Spec::Functions qw(rel2abs);
 use File::Basename qw(dirname);
-use File::Basename qw(basename);
+#use File::Basename qw(basename);
 
-use lib dirname( rel2abs(__FILE__) ) . "/" . "lib";
+#use lib dirname( rel2abs(__FILE__) ) . "/../src/" . "lib";
+use lib dirname( rel2abs(__FILE__) );
+use PackageDebTests;
+use PackagesListTests;
+use ProgramsInfoFileTests;
+
 
 use constant { true => 1, false => 0 };
-use constant { shellCmdFailure => 1, shellCmdSuccess => 0 };
+#use constant { shellCmdFailure => 1, shellCmdSuccess => 0 };
 
 
-#    # openvpn openssl ,, none ,, none ,, VPN staff // An easy-to-use, robust, and highly configurable VPN (Virtual Private Network).
+PackageDebTests::launchTests();
+
+PackagesListTests::launchTests();
+
+ProgramsInfoFileTests::launchTests();
+
+true;
