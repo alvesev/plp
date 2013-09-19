@@ -90,9 +90,9 @@ sub testAttributeSettersAndGetters {
     ($singleDebPackage->getAddrWhereCanBeFound() ne $addrWhereCanBeFound)
         && confess("Failed with test.");
 
-    my $codeNameOfSourceWhereCanBeFound = "fake-value";
-    $singleDebPackage->setCodeNameOfSourceWhereCanBeFound($codeNameOfSourceWhereCanBeFound);
-    ($singleDebPackage->getCodeNameOfSourceWhereCanBeFound() ne $codeNameOfSourceWhereCanBeFound)
+    my $codeNameOfSourceWhereCanNOTBeFound = "fake-value";
+    $singleDebPackage->setCodeNameOfSourceWhereCanNOTBeFound($codeNameOfSourceWhereCanNOTBeFound);
+    ($singleDebPackage->getCodeNameOfSourceWhereCanNOTBeFound() ne $codeNameOfSourceWhereCanNOTBeFound)
         && confess("Failed with test.");
 
     my $status = "fake-value";

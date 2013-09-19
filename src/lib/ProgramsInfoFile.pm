@@ -67,7 +67,7 @@ sub generateFileWithPackagesList {
         or confess("Failed to open file '" . $self->{nameFileWithList} . "' to be writen.");
     foreach my $singlePackageDeb (values($self->{packagesList}->getPacksList())) {
         my $stringWithProgramsInfo = "# " . $singlePackageDeb->getName()
-                            . " ,, " . $singlePackageDeb->getCodeNameOfSourceWhereCanBeFound()
+                            . " ,, " . $singlePackageDeb->getCodeNameOfSourceWhereCanNOTBeFound()
                             . " ,, " . "distro-version-not-implemented"
                             . " ,, " . $singlePackageDeb->getDescription();
         print HANDLE_FILE_OUT $stringWithProgramsInfo . "\n";
@@ -78,7 +78,7 @@ sub generateFileWithPackagesList {
     #foreach my $singlePackName (@packsNamesArray) {
         #my $singleDebPack = PackageDeb->new(name => $singlePackName);
         #$singleDebPack->setName($singlePackName);
-        #$singleDebPack->setCodeNameOfSourceWhereCanBeFound($distroWhereItIsNotExist);
+        #$singleDebPack->setCodeNameOfSourceWhereCanNOTBeFound($distroWhereItIsNotExist);
         ##$singleDebPack->set($distroVersionsWhereItIsNotExist); # XXX - Value is not used.
         #$singleDebPack->setDescription($humanDescription);
 
@@ -116,7 +116,7 @@ sub generatePackagesListFromFileStrings {
         foreach my $singlePackName (@packsNamesArray) {
             my $singleDebPack = PackageDeb->new(name => $singlePackName);
             $singleDebPack->setName($singlePackName);
-            $singleDebPack->setCodeNameOfSourceWhereCanBeFound($distroWhereItIsNotExist);
+            $singleDebPack->setCodeNameOfSourceWhereCanNOTBeFound($distroWhereItIsNotExist);
             #$singleDebPack->set($distroVersionsWhereItIsNotExist); # XXX - Value is not used.
             $singleDebPack->setDescription($humanDescription);
 

@@ -74,11 +74,11 @@ has 'addrWhereCanBeFound' => (
 );
 
 # XXX - Here is the bug: this is the name where it can NOT be found.
-has 'bug_codeNameOfSourceWhereCanBeFound' => (
+has 'codeNameOfSourceWhereCanNOTBeFound' => (
     is => 'ro',
     isa => 'Str',
-    reader => 'getCodeNameOfSourceWhereCanBeFound',
-    writer => 'setCodeNameOfSourceWhereCanBeFound',
+    reader => 'getCodeNameOfSourceWhereCanNOTBeFound',
+    writer => 'setCodeNameOfSourceWhereCanNOTBeFound',
 );
 
 has 'status' => (
@@ -344,7 +344,7 @@ true;
 
     #my $aptShowVersionsString = $self->{name}
             #. " " . $self->{version}
-            #. " " . $self->{codeNameOfSourceWhereCanBeFound}
+            #. " " . $self->{codeNameOfSourceWhereCanNOTBeFound}
             #. " " . $self->{addrWhereCanBeFound};
 
     #return $aptShowVersionsString;
