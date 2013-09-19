@@ -67,18 +67,6 @@ sub testAttributeSettersAndGetters {
 }
 
 
-sub testMiscGetters {
-    my $singlePack = PackageDeb->new(name => "fake-name");
-    my $packsList = PackagesList->new();
-
-    $packsList->setPackInListToBe($singlePack);
-    my $currentListSize = $packsList->getListLength();
-    ($currentListSize != 1)
-        && confess("Failed with test.");
-
-}
-
-
 sub testSetPackInList {
     my $expectedListSize = 1;
     my $packName_1 = "fake-name";
@@ -108,6 +96,17 @@ sub testSetPackInList {
 
     my $finalSizeOfList = $packsList->getListLength();
     ($finalSizeOfList != $expectedListSize)
+        && confess("Failed with test.");
+
+}
+
+sub testMiscGetters {
+    my $singlePack = PackageDeb->new(name => "fake-name");
+    my $packsList = PackagesList->new();
+
+    $packsList->setPackInListToBe($singlePack);
+    my $currentListSize = $packsList->getListLength();
+    ($currentListSize != 1)
         && confess("Failed with test.");
 
 }

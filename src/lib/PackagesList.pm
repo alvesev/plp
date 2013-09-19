@@ -39,8 +39,8 @@ has 'debPackagesList' => (
     is => 'ro',
     isa => 'HashRef[PackageDeb]',
     default => sub { return {}; },
-    #reader => 'getPacksList',
-    #writer => 'setPacksList',
+    reader => 'getPacksList',
+    writer => 'setPacksList',
 );
 
 

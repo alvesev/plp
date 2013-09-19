@@ -73,7 +73,8 @@ has 'addrWhereCanBeFound' => (
     writer => 'setAddrWhereCanBeFound',
 );
 
-has 'codeNameOfSourceWhereCanBeFound' => (
+# XXX - Here is the bug: this is the name where it can NOT be found.
+has 'bug_codeNameOfSourceWhereCanBeFound' => (
     is => 'ro',
     isa => 'Str',
     reader => 'getCodeNameOfSourceWhereCanBeFound',

@@ -40,7 +40,7 @@ use PackagesList;
 
 
 has 'nameFileWithList' => (
-    is => 'ro',
+    is => 'rw', # TODO - Should it be read only?
     isa => 'Str',
     required => true,
     reader => 'getFileName',
@@ -56,6 +56,36 @@ has 'packagesList' => (
     # TODO - redefine setter and getter, to harden read-write access?
 );
 
+sub generateFileWithPackagesList {
+    my $self = shift;
+
+    my %unblessedPacksListHashRef = %{$self->{packagesList}};
+    #carp("Have: " . $self->{packagesList}->getListLength());
+    #carp("Have: " . $self->{packagesList}->getPacksList()->{'pack2'}->getName());
+
+    open(HANDLE_FILE_OUT, ">", $self->{nameFileWithList})
+        or confess("Failed to open file '" . $self->{nameFileWithList} . "' to be writen.");
+    foreach my $singlePackageDeb (values($self->{packagesList}->getPacksList())) {
+        my $stringWithProgramsInfo = "# " . $singlePackageDeb->getName()
+                            . " ,, " . $singlePackageDeb->getCodeNameOfSourceWhereCanBeFound()
+                            . " ,, " . "distro-version-not-implemented"
+                            . " ,, " . $singlePackageDeb->getDescription();
+        print HANDLE_FILE_OUT $stringWithProgramsInfo . "\n";
+    }
+    close(HANDLE_FILE_OUT);
+## package-excluded-from-install ,, none ,, none ,, Pack/packs to be omited.
+
+    #foreach my $singlePackName (@packsNamesArray) {
+        #my $singleDebPack = PackageDeb->new(name => $singlePackName);
+        #$singleDebPack->setName($singlePackName);
+        #$singleDebPack->setCodeNameOfSourceWhereCanBeFound($distroWhereItIsNotExist);
+        ##$singleDebPack->set($distroVersionsWhereItIsNotExist); # XXX - Value is not used.
+        #$singleDebPack->setDescription($humanDescription);
+
+        #$self->{packagesList}->setPackInListToBe($singleDebPack);
+    #}
+
+}
 
 sub generatePackagesListFromFileStrings {
     my $self = shift;

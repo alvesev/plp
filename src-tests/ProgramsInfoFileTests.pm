@@ -36,7 +36,7 @@ use ProgramsInfoFile;
 use PLPDeclarations ':PLPDeclarations';
 
 use constant { NAME_FILE_TEST_EXAMPLE => "example-packages-list.conf" };
-use constant { NUMBER_OF_PACKS_DESCRIBED_IN_EXAMPLE_FILE => 22 };
+use constant { NUMBER_OF_PACKS_DESCRIBED_IN_EXAMPLE_FILE => 14 };
 
 
 # # #
@@ -51,6 +51,7 @@ sub launchTests {
     testAttributeSettersAndGetters();
     testMiscGetters();
     testReadFileWithPacksListing();
+    testWriteFileWithPacksListing();
 }
 
 sub testConstruction {
@@ -89,7 +90,17 @@ sub testReadFileWithPacksListing {
     my $expectedPackagesTotalQuantity = NUMBER_OF_PACKS_DESCRIBED_IN_EXAMPLE_FILE;
 
     ($obtainedPackagesQuantity != $expectedPackagesTotalQuantity)
-        && confess("Failed with test. Is example file modified without changes to the constants to be used with the test?");
+        && confess("Failed with test. Obtained packages quantity '" . $obtainedPackagesQuantity . "', expected '" . $expectedPackagesTotalQuantity . "'. Is example file modified without changes to the constants to be used with the test?");
+}
+
+sub testWriteFileWithPacksListing {
+    my $fileNameForInput = NAME_FILE_TEST_EXAMPLE;
+    my $fileNameForOutput = NAME_FILE_TEST_EXAMPLE . ".newly-auto-generated";
+    my $packsInfoFile = ProgramsInfoFile->new(nameFileWithList => $fileNameForInput);
+
+    $packsInfoFile->generatePackagesListFromFileStrings();
+    $packsInfoFile->setFileName($fileNameForOutput);
+    $packsInfoFile->generateFileWithPackagesList();
 }
 
 true;
