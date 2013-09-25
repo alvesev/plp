@@ -36,7 +36,7 @@ use ProgramsInfoFile;
 use PLPDeclarations ':PLPDeclarations';
 
 use constant { NAME_FILE_TEST_EXAMPLE => "example-packages-list.conf" };
-use constant { NUMBER_OF_PACKS_DESCRIBED_IN_EXAMPLE_FILE => 14 };
+use constant { NUMBER_OF_PACKS_SETS_DESCRIBED_IN_EXAMPLE_FILE => 8 };
 
 
 # # #
@@ -77,7 +77,7 @@ sub testMiscGetters {
     my $fileName = "/tmp/ProgramsInfoFileTests.testMiscGetters.txt";
     my $packsInfoFile = ProgramsInfoFile->new(nameFileWithList => $fileName);
 
-    $packsInfoFile->getPacksList();
+    $packsInfoFile->getPackagesListsPool();
     # TODO -
 }
 
@@ -86,11 +86,11 @@ sub testReadFileWithPacksListing {
     my $packsInfoFile = ProgramsInfoFile->new(nameFileWithList => $fileName);
 
     $packsInfoFile->generatePackagesListFromFileStrings();
-    my $obtainedPackagesQuantity = $packsInfoFile->getPacksList()->getListLength();
-    my $expectedPackagesTotalQuantity = NUMBER_OF_PACKS_DESCRIBED_IN_EXAMPLE_FILE;
+    my $obtainedPackagesQuantity = $packsInfoFile->getPackagesListsPoolSize();
+    my $expectedPackagesSetsTotalQuantity = NUMBER_OF_PACKS_SETS_DESCRIBED_IN_EXAMPLE_FILE;
 
-    ($obtainedPackagesQuantity != $expectedPackagesTotalQuantity)
-        && confess("Failed with test. Obtained packages quantity '" . $obtainedPackagesQuantity . "', expected '" . $expectedPackagesTotalQuantity . "'. Is example file modified without changes to the constants to be used with the test?");
+    ($obtainedPackagesQuantity != $expectedPackagesSetsTotalQuantity)
+        && confess("Failed with test. Obtained packages quantity '" . $obtainedPackagesQuantity . "', expected '" . $expectedPackagesSetsTotalQuantity . "'. Is example file modified without changes to the constants to be used with the test?");
 }
 
 sub testWriteFileWithPacksListing {

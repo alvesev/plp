@@ -47,50 +47,36 @@ has 'nameFileWithList' => (
     writer => 'setFileName',
 );
 
-has 'packagesList' => (
+has 'packagesListsPool' => (
     is => 'ro',
-    isa => 'PackagesList',
-    default => sub { return PackagesList->new(); },
-    #reader => 'getPacksList',
-    #writer => 'setPacksList',
-    # TODO - redefine setter and getter, to harden read-write access?
+    isa => 'ArrayRef[PackagesList]',
+    default => sub { return []; },
 );
 
 sub generateFileWithPackagesList {
     my $self = shift;
 
-    my %unblessedPacksListHashRef = %{$self->{packagesList}};
-    #carp("Have: " . $self->{packagesList}->getListLength());
-    #carp("Have: " . $self->{packagesList}->getPacksList()->{'pack2'}->getName());
+    foreach my $packagesList (@{$self->getPackagesListsPool()}) {
+        my $headPackageSerialNumber = $packagesList->getMinInsertionSerialNumber();
+        my $headPackage = $packagesList->getItemWithInsertionSerialNumber($headPackageSerialNumber);
 
-    open(HANDLE_FILE_OUT, ">", $self->{nameFileWithList})
-        or confess("Failed to open file '" . $self->{nameFileWithList} . "' to be writen.");
-    foreach my $singlePackageDeb (values($self->{packagesList}->getPacksList())) {
-        my $stringWithProgramsInfo = "# " . $singlePackageDeb->getName()
-                            . " ,, " . $singlePackageDeb->getCodeNameOfSourceWhereCanNOTBeFound()
+        my $packsNamesFromThePoolAsString = join(' ', @{$packagesList->enumeratePackagesNames()});
+
+        open(HANDLE_FILE_OUT, ">", $self->{nameFileWithList})
+            or confess("Failed to open file '" . $self->{nameFileWithList} . "' to be writen.");
+        my $stringWithProgramsInfo = "# " . $packsNamesFromThePoolAsString
+                            . " ,, " . $headPackage->getCodeNameOfSourceWhereCanNOTBeFound()
                             . " ,, " . "distro-version-not-implemented"
-                            . " ,, " . $singlePackageDeb->getDescription();
+                            . " ,, " . $headPackage->getDescription();
         print HANDLE_FILE_OUT $stringWithProgramsInfo . "\n";
+        print STDOUT $stringWithProgramsInfo . "\n";
+        close(HANDLE_FILE_OUT);
     }
-    close(HANDLE_FILE_OUT);
-## package-excluded-from-install ,, none ,, none ,, Pack/packs to be omited.
-
-    #foreach my $singlePackName (@packsNamesArray) {
-        #my $singleDebPack = PackageDeb->new(name => $singlePackName);
-        #$singleDebPack->setName($singlePackName);
-        #$singleDebPack->setCodeNameOfSourceWhereCanNOTBeFound($distroWhereItIsNotExist);
-        ##$singleDebPack->set($distroVersionsWhereItIsNotExist); # XXX - Value is not used.
-        #$singleDebPack->setDescription($humanDescription);
-
-        #$self->{packagesList}->setPackInListToBe($singleDebPack);
-    #}
-
 }
 
 sub generatePackagesListFromFileStrings {
     my $self = shift;
     my $fileName = $self->{nameFileWithList};
-    $self->{packagesList} = PackagesList->new();
 
     my @collectedStrings = pickUpDataFromFile($fileName);
 
@@ -101,7 +87,6 @@ sub generatePackagesListFromFileStrings {
             $distroWhereItIsNotExist,
             $distroVersionsWhereItIsNotExist,
             $humanDescription) = split($delimeter, $singleString);
-
         my @packsNamesArray = split('\s+', $packsAllNamesString);
 
         (!defined $packsAllNamesString)
@@ -113,17 +98,22 @@ sub generatePackagesListFromFileStrings {
         (!defined $humanDescription)
             && ($humanDescription = "");
 
+        my $singelePackagesList = PackagesList->new();
+        my $isFirstInASet = true;
         foreach my $singlePackName (@packsNamesArray) {
             my $singleDebPack = PackageDeb->new(name => $singlePackName);
-            $singleDebPack->setName($singlePackName);
-            $singleDebPack->setCodeNameOfSourceWhereCanNOTBeFound($distroWhereItIsNotExist);
-            #$singleDebPack->set($distroVersionsWhereItIsNotExist); # XXX - Value is not used.
-            $singleDebPack->setDescription($humanDescription);
-
-            $self->{packagesList}->setPackInListToBe($singleDebPack);
+            $singleDebPack->setName($singlePackName); # XXX - Double name set call.
+            if($isFirstInASet == true) {
+                $singleDebPack->setCodeNameOfSourceWhereCanNOTBeFound($distroWhereItIsNotExist);
+                #$singleDebPack->set($distroVersionsWhereItIsNotExist); # XXX - Value is not used.
+                $singleDebPack->setDescription($humanDescription);
+            }
+            $singelePackagesList->setPackInListToBe($singleDebPack);
+            $isFirstInASet = false;
         }
+        push(@{$self->{packagesListsPool}}, $singelePackagesList);
     }
-    #carp("Have items q.: " . $self->{packagesList}->getListLength());
+    #confess("Have items quantity '" . $self->getPackagesListsPoolSize() . "'.");
 }
 
 sub pickUpDataFromFile {
@@ -228,12 +218,16 @@ sub cleanUp {
 #
 
 
-sub getPacksList {
+sub getPackagesListsPool {
     my $self = shift;
-    my $outgoingList = $self->{packagesList};
-    return $outgoingList;
+    my @outgoingPool = @{$self->{packagesListsPool}};
+    return \@outgoingPool;
 }
 
+sub getPackagesListsPoolSize {
+    my $self = shift;
+    return $#{$self->{packagesListsPool}} + 1 ;
+}
 
 __PACKAGE__->meta->make_immutable();
 true;

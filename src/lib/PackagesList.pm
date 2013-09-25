@@ -43,6 +43,53 @@ has 'debPackagesList' => (
     writer => 'setPacksList',
 );
 
+has 'itemInsertionSerialNumbers' => (
+    is => 'ro',
+    isa => 'HashRef[Int]',
+    default => sub { return {}; },
+);
+
+
+sub getMinInsertionSerialNumber {
+    my $self = shift;
+    my $minNumber = $self->getMaxInsertionSerialNumber();
+
+    foreach my $singleItemUniqueId (keys($self->{itemInsertionSerialNumbers})) {
+        my $itemInsertionNumber = $self->{itemInsertionSerialNumbers}->{$singleItemUniqueId};
+        ($itemInsertionNumber < $minNumber)
+            && ($minNumber = $itemInsertionNumber);
+    }
+    return $minNumber;
+}
+
+sub getMaxInsertionSerialNumber {
+    my $self = shift;
+    my $maxNumber = 0;
+
+    foreach my $singleItemUniqueId (keys($self->{itemInsertionSerialNumbers})) {
+        my $itemInsertionNumber = $self->{itemInsertionSerialNumbers}->{$singleItemUniqueId};
+        ($itemInsertionNumber > $maxNumber)
+            && ($maxNumber = $itemInsertionNumber);
+    }
+    return $maxNumber;
+}
+
+#sub compactItemsInsertionSerialNumbers {
+
+#}
+
+#sub shiftDownItemsInsertionSerialNumbers {
+    #my $self = shift;
+    #my $foundMinNumber = $self->getMinInsertionSerialNumber();
+
+    #if($foundMinNumber > 1) {
+        #foreach my $singleItemUniqueId (keys($self->{itemInsertionSerialNumbers})) {
+            #my $reducedNumber = $self->{itemInsertionSerialNumbers}->{$singleItemUniqueId} - $foundMinNumber + 1;
+            #$self->{itemInsertionSerialNumbers}->{$singleItemUniqueId} = $reducedNumber;
+        #}
+    #}
+#}
+
 
 #sub cleanUp {
     #die("Deprecated function call.")
@@ -63,7 +110,13 @@ sub setPackInListToBe {
     my $incomingPack = shift;
 
     my $incomingUniqueId =  $incomingPack->getUniqueId();
+
     $self->{debPackagesList}->{$incomingUniqueId} = $incomingPack;
+
+    if(!defined $self->{itemInsertionSerialNumbers}->{$incomingUniqueId}) {
+        my $thisInsertionSerialNumber = $self->getMaxInsertionSerialNumber() + 1;
+        $self->{itemInsertionSerialNumbers}->{$incomingUniqueId} = $thisInsertionSerialNumber;
+    }
 }
 
 
@@ -77,6 +130,34 @@ sub setPackInListToBe {
 sub getListLength {
     my $self = shift;
     return scalar keys($self->{debPackagesList});
+}
+
+sub getItemWithInsertionSerialNumber() {
+    my $self = shift;
+    my $wantedItemSerialNumber = shift;
+    my $foundItemId = undef;
+
+    foreach my $singleItemUniqueId (keys($self->{itemInsertionSerialNumbers})) {
+        my $itemInsertionNumber = $self->{itemInsertionSerialNumbers}->{$singleItemUniqueId};
+        ((defined $itemInsertionNumber)
+            && ($wantedItemSerialNumber == $itemInsertionNumber))
+                    && ($foundItemId = $singleItemUniqueId);
+    }
+    return $self->{debPackagesList}->{$foundItemId};
+}
+
+sub enumeratePackagesNames {
+    my $self = shift;
+    my @packagesNamesArray = ();
+
+    my $maxSerialNumber = $self->getMaxInsertionSerialNumber();
+
+    foreach my $singleNumber (1 .. $maxSerialNumber) {
+        my $singlePack = $self->getItemWithInsertionSerialNumber($singleNumber);
+        (defined $singlePack)
+            && push(@packagesNamesArray, $singlePack->getName());
+    }
+    return \@packagesNamesArray;
 }
 
 __PACKAGE__->meta->make_immutable();
