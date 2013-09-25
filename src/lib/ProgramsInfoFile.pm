@@ -56,22 +56,21 @@ has 'packagesListsPool' => (
 sub generateFileWithPackagesList {
     my $self = shift;
 
+    open(HANDLE_FILE_OUT, ">", $self->{nameFileWithList})
+        or confess("Failed to open file '" . $self->{nameFileWithList} . "' to be writen.");
     foreach my $packagesList (@{$self->getPackagesListsPool()}) {
         my $headPackageSerialNumber = $packagesList->getMinInsertionSerialNumber();
         my $headPackage = $packagesList->getItemWithInsertionSerialNumber($headPackageSerialNumber);
 
         my $packsNamesFromThePoolAsString = join(' ', @{$packagesList->enumeratePackagesNames()});
 
-        open(HANDLE_FILE_OUT, ">", $self->{nameFileWithList})
-            or confess("Failed to open file '" . $self->{nameFileWithList} . "' to be writen.");
         my $stringWithProgramsInfo = "# " . $packsNamesFromThePoolAsString
                             . " ,, " . $headPackage->getCodeNameOfSourceWhereCanNOTBeFound()
                             . " ,, " . "distro-version-not-implemented"
                             . " ,, " . $headPackage->getDescription();
         print HANDLE_FILE_OUT $stringWithProgramsInfo . "\n";
-        print STDOUT $stringWithProgramsInfo . "\n";
-        close(HANDLE_FILE_OUT);
     }
+    close(HANDLE_FILE_OUT);
 }
 
 sub generatePackagesListFromFileStrings {
