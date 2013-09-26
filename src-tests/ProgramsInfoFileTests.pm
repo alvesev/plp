@@ -98,12 +98,17 @@ sub testReadFileWithPacksListing {
 
 sub testWriteFileWithPacksListing {
     my $fileNameForInput = NAME_FILE_TEST_EXAMPLE;
-    my $fileNameForOutput = NAME_FILE_TEST_EXAMPLE . ".newly-auto-generated";
-    my $packsInfoFile = ProgramsInfoFile->new(nameFileWithList => $fileNameForInput);
+    my $fileNameForOutputAllPackages = NAME_FILE_TEST_EXAMPLE . ".newly-auto-generated";
+    my $fileNameForOutputForUbuntu = NAME_FILE_TEST_EXAMPLE . ".newly-auto-generated.for-Ubuntu";
 
+    my $packsInfoFile = ProgramsInfoFile->new(nameFileWithList => $fileNameForInput);
     $packsInfoFile->generatePackagesListFromFileStrings();
-    $packsInfoFile->setFileName($fileNameForOutput);
-    $packsInfoFile->generateFileWithPackagesList();
+
+    $packsInfoFile->setFileName($fileNameForOutputAllPackages);
+    $packsInfoFile->generateFileWithPackagesListForDistroNamed("");
+
+    $packsInfoFile->setFileName($fileNameForOutputForUbuntu);
+    $packsInfoFile->generateFileWithPackagesListForDistroNamed("Ubuntu");
 }
 
 true;

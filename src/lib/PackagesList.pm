@@ -136,24 +136,21 @@ sub getItemWithInsertionSerialNumber() {
     return $self->{debPackagesList}->{$foundItemId};
 }
 
-#sub getListedPackagesNamesAsString {
-    #my $self = shift;
-
-    #my @packsNamesArray = $self->getListedPackagesNamesAsArray();
-    #my $packagesNames = join(' ', @packsNamesArray);
-    #return @packagesNames;
-#}
-
-sub getListedPackagesNamesAsArray {
+sub getListedPackagesNamesAsArrayForDistro {
     my $self = shift;
+    my $wantedDistoCodeName = shift;
+
     my @packagesNamesArray = ();
 
     my $maxSerialNumber = $self->getMaxInsertionSerialNumber();
 
+
     foreach my $singleNumber (1 .. $maxSerialNumber) {
         my $singlePack = $self->getItemWithInsertionSerialNumber($singleNumber);
-        (defined $singlePack)
-            && push(@packagesNamesArray, $singlePack->getName());
+
+        if((defined $singlePack) && (! $singlePack->isInListOfMissedHaveDistroName($wantedDistoCodeName))) {
+            push(@packagesNamesArray, $singlePack->getName());
+        }
     }
     return @packagesNamesArray;
 }

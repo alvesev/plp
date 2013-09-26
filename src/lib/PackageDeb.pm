@@ -100,6 +100,28 @@ has 'status' => (
 
 # # #
  # #
+# #
+ #
+#
+
+
+sub isInListOfMissedHaveDistroName {
+    my $self = shift;
+    my $givenDistroName = shift;
+
+    ($givenDistroName eq "")
+        && return false;
+
+    foreach my $singleItem (@{$self->{distroNamesPoolWhereItemIsNotExist}}) {
+        ($givenDistroName eq $singleItem)
+            && return true;
+    }
+    return false;
+}
+
+
+# # #
+ # #
 # #    Setters
  #
 #
@@ -135,9 +157,9 @@ sub getDistroNamesPoolWhereItemIsNotExistAsString {
     return join(' ', @{$self->{distroNamesPoolWhereItemIsNotExist}});
 }
 
-sub getDistroNamesPoolWhereItemIsNotExistAsArray {
-    return "none-value";
-}
+#sub getDistroNamesPoolWhereItemIsNotExistAsArray {
+    #return @{$self->{distroNamesPoolWhereItemIsNotExist}};
+#}
 
 
 __PACKAGE__->meta->make_immutable();

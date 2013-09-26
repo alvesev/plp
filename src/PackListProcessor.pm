@@ -52,6 +52,12 @@ has 'nameFileWithPacksDescription' => (
     default => sub {return "";},
 );
 
+has 'wantedDistributionName' => (
+    is => 'rw',
+    isa => 'Str',
+    default => sub {return "";},
+);
+
 
 
 
@@ -68,9 +74,10 @@ sub showPacksInstallCommand {
     my $self = shift;
 
     my $programsInfoFile = ProgramsInfoFile->new(nameFileWithList => $self->{nameFileWithPacksDescription});
-
     $programsInfoFile->generatePackagesListFromFileStrings();
-    my @arrayNamesListedInPrgInfoFile = $programsInfoFile->getListedPackagesNamesAsArray();
+
+    my @arrayNamesListedInPrgInfoFile
+        = $programsInfoFile->getListedPackagesNamesAsArrayForDistro($self->{wantedDistributionName});
 
     print STDERR "\n";
     print STDOUT "apt-get  --dry-run  install  " . join(' ', @arrayNamesListedInPrgInfoFile) . "\n";
@@ -98,6 +105,7 @@ sub BUILD {
     }
 
     $self->{nameFileWithPacksDescription} = $self->{cliOptions}->getNameFileWithPacksDescription();
+    $self->{wantedDistributionName} = $self->{cliOptions}->getWantedDistributionName();
 }
 
 

@@ -53,8 +53,12 @@ has 'packagesListsPool' => (
     default => sub { return []; },
 );
 
-sub generateFileWithPackagesList {
+sub generateFileWithPackagesListForDistroNamed {
     my $self = shift;
+    my $wantedDistroName = shift;
+
+    (!defined $wantedDistroName)
+        && ($wantedDistroName = "");
 
     open(HANDLE_FILE_OUT, ">", $self->{nameFileWithList})
         or confess("Failed to open file '" . $self->{nameFileWithList} . "' to be writen.");
@@ -62,19 +66,21 @@ sub generateFileWithPackagesList {
         my $headPackageSerialNumber = $packagesList->getMinInsertionSerialNumber();
         my $headPackage = $packagesList->getItemWithInsertionSerialNumber($headPackageSerialNumber);
 
-        my @listedPacksNamesArray = $packagesList->getListedPackagesNamesAsArray();
-        my $packsNamesFromThePoolAsString = join(' ', @listedPacksNamesArray);
+        if(! $headPackage->isInListOfMissedHaveDistroName($wantedDistroName)) {
+            my @listedPacksNamesArray = $packagesList->getListedPackagesNamesAsArrayForDistro($wantedDistroName);
+            my $packsNamesFromThePoolAsString = join(' ', @listedPacksNamesArray);
 
-        my $stringWithProgramsInfo = "# "
-                            . $packsNamesFromThePoolAsString
-                            . PACKS_LIST_STRING_FIELD_DELIMETER
-                            . $headPackage->getDistroNamesPoolWhereItemIsNotExistAsString()
-                            . PACKS_LIST_STRING_FIELD_DELIMETER
-                            . "distro-version-not-implemented"
-                            . PACKS_LIST_STRING_FIELD_DELIMETER
-                            . $headPackage->getDescription();
+            my $stringWithProgramsInfo = "# "
+                                . $packsNamesFromThePoolAsString
+                                . PACKS_LIST_STRING_FIELD_DELIMETER
+                                . $headPackage->getDistroNamesPoolWhereItemIsNotExistAsString()
+                                . PACKS_LIST_STRING_FIELD_DELIMETER
+                                . "distro-version-not-implemented"
+                                . PACKS_LIST_STRING_FIELD_DELIMETER
+                                . $headPackage->getDescription();
 
-        print HANDLE_FILE_OUT $stringWithProgramsInfo . "\n";
+            print HANDLE_FILE_OUT $stringWithProgramsInfo . "\n";
+        }
     }
     close(HANDLE_FILE_OUT);
 }
@@ -218,13 +224,20 @@ sub cleanUp {
 #
 
 
-sub getListedPackagesNamesAsArray {
+sub getListedPackagesNamesAsArrayForDistro {
     my $self = shift;
+    my $wantedDistroName = shift;
+
     my @arrayNamesListedInPrgInfoFile = ();
 
     foreach my $singleListOfPacks (@{$self->{packagesListsPool}}) {
-        my @listedNamesArray = $singleListOfPacks->getListedPackagesNamesAsArray();
-        @arrayNamesListedInPrgInfoFile = (@arrayNamesListedInPrgInfoFile, @listedNamesArray);
+        my $headPackageSerialNumber = $singleListOfPacks->getMinInsertionSerialNumber();
+        my $headPackage = $singleListOfPacks->getItemWithInsertionSerialNumber($headPackageSerialNumber);
+
+        if(! $headPackage->isInListOfMissedHaveDistroName($wantedDistroName)) {
+            my @listedNamesArray = $singleListOfPacks->getListedPackagesNamesAsArrayForDistro("");
+            @arrayNamesListedInPrgInfoFile = (@arrayNamesListedInPrgInfoFile, @listedNamesArray);
+        }
     }
     return @arrayNamesListedInPrgInfoFile;
 }

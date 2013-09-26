@@ -46,6 +46,13 @@ has 'file' => (
     reader => 'getNameFileWithPacksDescription',
 );
 
+has 'distro-name' => (
+    is => 'ro',
+    isa => 'Str',
+    default => sub {return "";},
+    reader => 'getWantedDistributionName',
+);
+
 has 'show-install-cmd' => (
     is => 'ro',
     isa => 'Bool',
