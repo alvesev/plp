@@ -47,6 +47,7 @@ use PackageDeb;
 
 sub launchTests {
     testAttributeSettersAndGetters();
+    testMiscSettersAndGetters();
     testGetUnuiqueId();
 }
 
@@ -91,14 +92,24 @@ sub testAttributeSettersAndGetters {
     #($singleDebPackage->getAddrWhereCanBeFound() ne $addrWhereCanBeFound)
         #&& confess("Failed with test.");
 
-    my $codeNameOfSourceWhereCanNOTBeFound = "fake-value";
-    $singleDebPackage->setCodeNameOfSourceWhereCanNOTBeFound($codeNameOfSourceWhereCanNOTBeFound);
-    ($singleDebPackage->getCodeNameOfSourceWhereCanNOTBeFound() ne $codeNameOfSourceWhereCanNOTBeFound)
+    my @distroNamesPoolWhereItemIsNotExist = ("fake-value");
+    $singleDebPackage->setDistroNamesPoolWhereItemIsNotExist(\@distroNamesPoolWhereItemIsNotExist);
+    ($singleDebPackage->getDistroNamesPoolWhereItemIsNotExist() ne \@distroNamesPoolWhereItemIsNotExist)
         && confess("Failed with test.");
 
     my $status = "fake-value";
     $singleDebPackage->setStatus($status);
     ($singleDebPackage->getStatus() ne $status)
+        && confess("Failed with test.");
+}
+
+sub testMiscSettersAndGetters {
+    my $singleDebPackage = PackageDeb->new(name => "name_1");
+
+    my $expectedString = "Ubuntu CentOS";
+    $singleDebPackage->setDistroNamesPoolWhereItemIsNotExistFromString($expectedString);
+    my $obtainedDString = $singleDebPackage->getDistroNamesPoolWhereItemIsNotExistAsString();
+    ($obtainedDString ne $expectedString)
         && confess("Failed with test.");
 }
 

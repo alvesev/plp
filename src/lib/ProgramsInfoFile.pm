@@ -65,10 +65,15 @@ sub generateFileWithPackagesList {
         my @listedPacksNamesArray = $packagesList->getListedPackagesNamesAsArray();
         my $packsNamesFromThePoolAsString = join(' ', @listedPacksNamesArray);
 
-        my $stringWithProgramsInfo = "# " . $packsNamesFromThePoolAsString
-                            . " ,, " . $headPackage->getCodeNameOfSourceWhereCanNOTBeFound()
-                            . " ,, " . "distro-version-not-implemented"
-                            . " ,, " . $headPackage->getDescription();
+        my $stringWithProgramsInfo = "# "
+                            . $packsNamesFromThePoolAsString
+                            . PACKS_LIST_STRING_FIELD_DELIMETER
+                            . $headPackage->getDistroNamesPoolWhereItemIsNotExistAsString()
+                            . PACKS_LIST_STRING_FIELD_DELIMETER
+                            . "distro-version-not-implemented"
+                            . PACKS_LIST_STRING_FIELD_DELIMETER
+                            . $headPackage->getDescription();
+
         print HANDLE_FILE_OUT $stringWithProgramsInfo . "\n";
     }
     close(HANDLE_FILE_OUT);
@@ -87,7 +92,6 @@ sub generatePackagesListFromFileStrings {
             $distroWhereItIsNotExist,
             $distroVersionsWhereItIsNotExist,
             $humanDescription) = split($delimeter, $singleString);
-        my @packsNamesArray = split('\s+', $packsAllNamesString);
 
         (!defined $packsAllNamesString)
             && confess("Package name can not be undefined. Error with string '" . $singleString . "'.");
@@ -98,16 +102,21 @@ sub generatePackagesListFromFileStrings {
         (!defined $humanDescription)
             && confess("DEB package description can be empty, but can not be undefined. Error with string '" . $singleString . "'.");
 
+        my @packsNamesArray = split('\s+', $packsAllNamesString);
+
         my $singelePackagesList = PackagesList->new();
         my $isFirstInASet = true;
         foreach my $singlePackName (@packsNamesArray) {
             my $singleDebPack = PackageDeb->new(name => $singlePackName);
             $singleDebPack->setName($singlePackName); # XXX - Double name set call.
+
             if($isFirstInASet == true) {
-                $singleDebPack->setCodeNameOfSourceWhereCanNOTBeFound($distroWhereItIsNotExist);
+                my @distroNamesWhereIsMissed = split('\s+', $distroWhereItIsNotExist);
+                $singleDebPack->setDistroNamesPoolWhereItemIsNotExist(\@distroNamesWhereIsMissed);
                 #$singleDebPack->set($distroVersionsWhereItIsNotExist); # XXX - Value is not used.
                 $singleDebPack->setDescription($humanDescription);
             }
+
             $singelePackagesList->setPackInListToBe($singleDebPack);
             $isFirstInASet = false;
         }

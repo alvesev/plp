@@ -79,11 +79,13 @@ has 'dependencies' => (
     #writer => 'setAddrWhereCanBeFound',
 #);
 
-has 'codeNameOfSourceWhereCanNOTBeFound' => (
+has 'distroNamesPoolWhereItemIsNotExist' => (
+    traits  => ['Array'],
     is => 'ro',
-    isa => 'Str',
-    reader => 'getCodeNameOfSourceWhereCanNOTBeFound',
-    writer => 'setCodeNameOfSourceWhereCanNOTBeFound',
+    isa => 'ArrayRef[Str]',
+    default => sub {return [];},
+    reader => 'getDistroNamesPoolWhereItemIsNotExist',
+    writer => 'setDistroNamesPoolWhereItemIsNotExist',
 );
 
 has 'status' => (
@@ -103,6 +105,14 @@ has 'status' => (
 #
 
 
+sub setDistroNamesPoolWhereItemIsNotExistFromString {
+    my $self = shift;
+    my $newNamesSetString = shift;
+    $self->{distroNamesPoolWhereItemIsNotExist} = [];
+
+    my @newNamesSetArray = split('\s+', $newNamesSetString);
+    push(@{$self->{distroNamesPoolWhereItemIsNotExist}}, @newNamesSetArray);
+}
 
 
 # # #
@@ -118,6 +128,15 @@ sub getUniqueId {
     my $self = shift;
     my $uniqueId = $self->{name};
     return $uniqueId;
+}
+
+sub getDistroNamesPoolWhereItemIsNotExistAsString {
+    my $self = shift;
+    return join(' ', @{$self->{distroNamesPoolWhereItemIsNotExist}});
+}
+
+sub getDistroNamesPoolWhereItemIsNotExistAsArray {
+    return "none-value";
 }
 
 
@@ -355,7 +374,7 @@ true;
 
     #my $aptShowVersionsString = $self->{name}
             #. " " . $self->{version}
-            #. " " . $self->{codeNameOfSourceWhereCanNOTBeFound}
+            #. " " . $self->{distroNamesPoolWhereItemIsNotExist}
             #. " " . $self->{addrWhereCanBeFound};
 
     #return $aptShowVersionsString;
