@@ -90,13 +90,13 @@ sub generatePackagesListFromFileStrings {
         my @packsNamesArray = split('\s+', $packsAllNamesString);
 
         (!defined $packsAllNamesString)
-            && confess("Package name can not be undefined.");
+            && confess("Package name can not be undefined. Error with string '" . $singleString . "'.");
         (!defined $distroWhereItIsNotExist)
-            && ($distroWhereItIsNotExist = "");
+            && confess("Distributions list, where package can not be found can be empty, but can not be undefined. Error with string '" . $singleString . "'.");
         (!defined $distroVersionsWhereItIsNotExist)
-            && ($distroVersionsWhereItIsNotExist = "");
+            && confess("Versions list, where package can not be found can be empty, but can not be undefined. Error with string '" . $singleString . "'.");
         (!defined $humanDescription)
-            && ($humanDescription = "");
+            && confess("DEB package description can be empty, but can not be undefined. Error with string '" . $singleString . "'.");
 
         my $singelePackagesList = PackagesList->new();
         my $isFirstInASet = true;

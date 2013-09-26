@@ -2,7 +2,7 @@
 # pack-head pack2 pack3 ,, none ,, distro-version-not-implemented ,, Several packs on one line.
 # doublecmd-gtk2 ,, Ubuntu Fedora ,, distro-version-not-implemented ,, Double commander.
 # total-commander ,, Ubuntu Fedora ArchBang ,, distro-version-not-implemented ,, Twin panel file manager.
-# claws-mail ,, none ,, distro-version-not-implemented ,, A GTK+ based e-mail client.
+# claws-mail ,,  ,, distro-version-not-implemented ,, .
 # claws-mail-trayicon claws-mail-bogofilter claws-mail-tools claws-mail-doc ,, Fedora ArchBang ,, distro-version-not-implemented ,, A GTK+ based e-mail client.
 # thunderbird ,, none ,, distro-version-not-implemented ,, Standalone Mail/News reader.
 # evolution evolution-plugins ,, Ubuntu ,, distro-version-not-implemented ,, Manage your email, contacts and schedule. 'evolution-plugins' - backup and restore Evolution plugin is inside) // Manage your email, contacts and schedule.
