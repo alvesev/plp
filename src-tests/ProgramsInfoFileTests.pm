@@ -39,11 +39,15 @@ use constant { NAME_FILE_TEST_EXAMPLE => "example-packages-list.conf" };
 use constant { NUMBER_OF_PACKS_SETS_DESCRIBED_IN_EXAMPLE_FILE => 8 };
 
 
+
+
 # # #
  # #
 # #
  #
 #
+
+
 
 
 sub launchTests {
@@ -71,7 +75,6 @@ sub testAttributeSettersAndGetters {
     ($packsInfoFile->getFileName() ne $fileName_2)
         && carp("Failed with test.");
 }
-
 
 sub testMiscGetters {
     my $fileName = "/tmp/ProgramsInfoFileTests.testMiscGetters.txt";

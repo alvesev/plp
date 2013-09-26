@@ -20,24 +20,38 @@
 #
 ##
 
-package PLP;
-use Moose;
+package PackListProcessorDoc;
 
-use strict;
-use warnings;
-use Carp;
+my $docText = '
+NAME
 
-use File::Spec::Functions qw(rel2abs);
-use File::Basename qw(dirname);
-use File::Basename qw(basename);
+        plp - process a list of software packages.
 
-use lib dirname( rel2abs(__FILE__) ) . "/" . "lib";
-use PLPDeclarations ':PLPDeclarations';
-use PackListProcessor;
+SYNOPSIS
 
+        plp [OPTION]...
 
-my $plp = PackListProcessor->new();
-$plp->showPacksInstallCommand();
+DESCRIPTION
+
+        Maintains a list of packages to be stored in a file and a commands to install them, etc.
+
+        --file="/name/for/a/file/with/packages/names/list"
+
+            A file, to be used as software packages list.
+
+        --help
+
+            Show some descriptive text.
+
+AUTHOR
+
+        Written by Alex Vesev.
+
+COPYRIGHT
+
+        Copyright © 2013 Alex Vesev. License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>. This is free software: you are free to change and redistribute it. There is NO WARRANTY, to the extent permitted by law.
+
+';
 
 
 # # #
@@ -47,5 +61,9 @@ $plp->showPacksInstallCommand();
 #
 
 
-__PACKAGE__->meta->make_immutable();
+sub printoutDoc {
+    print STDOUT $docText;
+}
+
+
 true;

@@ -28,11 +28,11 @@ use strict;
 use warnings;
 use Carp;
 
+use File::Spec::Functions qw(rel2abs);
+use File::Basename qw(dirname);
 
-#use Switch;
-
-use constant { true => 1, false => 0 };
-#use constant { shellCmdSuccess => 0, shellCmdFailure => 1 };
+use lib dirname( rel2abs(__FILE__) );
+use PLPDeclarations ':PLPDeclarations';
 
 
 has 'debPackagesList' => (
@@ -48,6 +48,13 @@ has 'itemInsertionSerialNumbers' => (
     isa => 'HashRef[Int]',
     default => sub { return {}; },
 );
+
+
+# # #
+ # #
+# #
+ #
+#
 
 
 sub getMinInsertionSerialNumber {
@@ -75,26 +82,9 @@ sub getMaxInsertionSerialNumber {
 }
 
 #sub compactItemsInsertionSerialNumbers {
-
 #}
 
 #sub shiftDownItemsInsertionSerialNumbers {
-    #my $self = shift;
-    #my $foundMinNumber = $self->getMinInsertionSerialNumber();
-
-    #if($foundMinNumber > 1) {
-        #foreach my $singleItemUniqueId (keys($self->{itemInsertionSerialNumbers})) {
-            #my $reducedNumber = $self->{itemInsertionSerialNumbers}->{$singleItemUniqueId} - $foundMinNumber + 1;
-            #$self->{itemInsertionSerialNumbers}->{$singleItemUniqueId} = $reducedNumber;
-        #}
-    #}
-#}
-
-
-#sub cleanUp {
-    #die("Deprecated function call.")
-    #my $self = shift;
-    #$self->{debPackagesList} = {};
 #}
 
 
@@ -146,7 +136,15 @@ sub getItemWithInsertionSerialNumber() {
     return $self->{debPackagesList}->{$foundItemId};
 }
 
-sub enumeratePackagesNames {
+#sub getListedPackagesNamesAsString {
+    #my $self = shift;
+
+    #my @packsNamesArray = $self->getListedPackagesNamesAsArray();
+    #my $packagesNames = join(' ', @packsNamesArray);
+    #return @packagesNames;
+#}
+
+sub getListedPackagesNamesAsArray {
     my $self = shift;
     my @packagesNamesArray = ();
 
@@ -157,7 +155,7 @@ sub enumeratePackagesNames {
         (defined $singlePack)
             && push(@packagesNamesArray, $singlePack->getName());
     }
-    return \@packagesNamesArray;
+    return @packagesNamesArray;
 }
 
 __PACKAGE__->meta->make_immutable();

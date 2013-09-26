@@ -27,11 +27,14 @@ use Moose;
 use strict;
 use warnings;
 
+use File::Spec::Functions qw(rel2abs);
+use File::Basename qw(dirname);
 
-#use Switch;
+use lib dirname( rel2abs(__FILE__) );
+use PLPDeclarations ':PLPDeclarations';
 
-use constant { true => 1, false => 0 };
-#use constant { shellCmdSuccess => 0, shellCmdFailure => 1 };
+
+
 
 has 'name' => (
     is => 'ro',
@@ -54,26 +57,28 @@ has 'arch' => (
     reader => 'getArch',
     writer => 'setArch',
 );
+
 has 'description' => (
     is => 'ro',
     isa => 'Str',
     reader => 'getDescription',
     writer => 'setDescription',
 );
+
 has 'dependencies' => (
     is => 'ro',
     isa => 'Str',
     reader => 'getDependencies',
     writer => 'setDependencies',
 );
-has 'addrWhereCanBeFound' => (
-    is => 'ro',
-    isa => 'Str',
-    reader => 'getAddrWhereCanBeFound',
-    writer => 'setAddrWhereCanBeFound',
-);
 
-# XXX - Here is the bug: this is the name where it can NOT be found.
+#has 'addrWhereCanBeFound' => (
+    #is => 'ro',
+    #isa => 'Str',
+    #reader => 'getAddrWhereCanBeFound',
+    #writer => 'setAddrWhereCanBeFound',
+#);
+
 has 'codeNameOfSourceWhereCanNOTBeFound' => (
     is => 'ro',
     isa => 'Str',
@@ -89,6 +94,8 @@ has 'status' => (
 );
 
 
+
+
 # # #
  # #
 # #    Setters
@@ -96,11 +103,15 @@ has 'status' => (
 #
 
 
+
+
 # # #
  # #
 # #    Getters
  #
 #
+
+
 
 
 sub getUniqueId {

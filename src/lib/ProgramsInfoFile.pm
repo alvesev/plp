@@ -62,7 +62,8 @@ sub generateFileWithPackagesList {
         my $headPackageSerialNumber = $packagesList->getMinInsertionSerialNumber();
         my $headPackage = $packagesList->getItemWithInsertionSerialNumber($headPackageSerialNumber);
 
-        my $packsNamesFromThePoolAsString = join(' ', @{$packagesList->enumeratePackagesNames()});
+        my @listedPacksNamesArray = $packagesList->getListedPackagesNamesAsArray();
+        my $packsNamesFromThePoolAsString = join(' ', @listedPacksNamesArray);
 
         my $stringWithProgramsInfo = "# " . $packsNamesFromThePoolAsString
                             . " ,, " . $headPackage->getCodeNameOfSourceWhereCanNOTBeFound()
@@ -112,7 +113,6 @@ sub generatePackagesListFromFileStrings {
         }
         push(@{$self->{packagesListsPool}}, $singelePackagesList);
     }
-    #confess("Have items quantity '" . $self->getPackagesListsPoolSize() . "'.");
 }
 
 sub pickUpDataFromFile {
@@ -160,18 +160,10 @@ sub reduceToWantedOnlyStringsInArray {
                 $singleString =~ s/^#(\s{1})//; # Strip leading '# '.
                 push(@outputStrings, $singleString)
             }
-            #case m/^\s*#/ { true;} # Widely used commentary string sign.
-            #case m/^$/ { true;} # Just empty line.
-            #else { true;} # Everything else.
         }
     }
     return @outputStrings;
 }
-
-#sub invertBool {
-    #my $boolean = shift;
-    #return $boolean != false ? false : true ; # Invert boolean value.
-#}
 
 sub isItListSTARTSign {
     my $input = shift;
@@ -217,6 +209,17 @@ sub cleanUp {
 #
 
 
+sub getListedPackagesNamesAsArray {
+    my $self = shift;
+    my @arrayNamesListedInPrgInfoFile = ();
+
+    foreach my $singleListOfPacks (@{$self->{packagesListsPool}}) {
+        my @listedNamesArray = $singleListOfPacks->getListedPackagesNamesAsArray();
+        @arrayNamesListedInPrgInfoFile = (@arrayNamesListedInPrgInfoFile, @listedNamesArray);
+    }
+    return @arrayNamesListedInPrgInfoFile;
+}
+
 sub getPackagesListsPool {
     my $self = shift;
     my @outgoingPool = @{$self->{packagesListsPool}};
@@ -227,6 +230,7 @@ sub getPackagesListsPoolSize {
     my $self = shift;
     return $#{$self->{packagesListsPool}} + 1 ;
 }
+
 
 __PACKAGE__->meta->make_immutable();
 true;

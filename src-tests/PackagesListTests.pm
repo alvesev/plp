@@ -31,11 +31,12 @@ use File::Basename qw(dirname);
 #use File::Basename qw(basename);
 
 use lib dirname( rel2abs(__FILE__) ) . "/../src/" . "lib";
+use PLPDeclarations ':PLPDeclarations';
 use PackageDeb;
 use PackagesList;
 
-use constant { true => 1, false => 0 };
-use constant { shellCmdFailure => 1, shellCmdSuccess => 0 };
+#use constant { true => 1, false => 0 };
+#use constant { shellCmdFailure => 1, shellCmdSuccess => 0 };
 
 
 # # #

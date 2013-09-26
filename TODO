@@ -1,5 +1,8 @@
 TODO:
 
+    - Implement usage of 'where-can-not-be-found' atribute.
+    - Implement ignore of strings without " '' " separator text, but started with "# ".
+
     - Refactoring.
     - Unify constants declarations.
     - Implement some widely used functions as external module.

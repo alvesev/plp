@@ -20,8 +20,10 @@
 #
 ##
 
-package PLP;
+package PackListProcessorCLIOptions;
+
 use Moose;
+with 'MooseX::Getopt';
 
 use strict;
 use warnings;
@@ -33,11 +35,36 @@ use File::Basename qw(basename);
 
 use lib dirname( rel2abs(__FILE__) ) . "/" . "lib";
 use PLPDeclarations ':PLPDeclarations';
-use PackListProcessor;
 
 
-my $plp = PackListProcessor->new();
-$plp->showPacksInstallCommand();
+
+
+has 'file' => (
+    is => 'ro',
+    isa => 'Str',
+    default => sub {return "";},
+    reader => 'getNameFileWithPacksDescription',
+);
+
+has 'show-install-cmd' => (
+    is => 'ro',
+    isa => 'Bool',
+    reader => 'isShowInstCmdRequested',
+);
+
+has 'verbose' => (
+    is => 'ro',
+    isa => 'Bool',
+    reader => 'isVerbose',
+);
+
+has 'help' => (
+    is => 'ro',
+    isa => 'Bool',
+    reader => 'isSomeDocRequested',
+);
+
+
 
 
 # # #
@@ -45,6 +72,21 @@ $plp->showPacksInstallCommand();
 # #
  #
 #
+
+
+
+
+sub BUILD {
+    my $self = shift;
+
+    ($self->isSomeDocRequested())
+        && return true;
+
+    (! -f $self->getNameFileWithPacksDescription())
+        && confess("File '" . $self->getNameFileWithPacksDescription(). "', to be used as packages descriptions source, not found.");
+}
+
+
 
 
 __PACKAGE__->meta->make_immutable();

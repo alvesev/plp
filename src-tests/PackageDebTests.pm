@@ -31,10 +31,11 @@ use File::Basename qw(dirname);
 #use File::Basename qw(basename);
 
 use lib dirname( rel2abs(__FILE__) ) . "/../src/" . "lib";
+use PLPDeclarations ':PLPDeclarations';
 use PackageDeb;
 
-use constant { true => 1, false => 0 };
-use constant { shellCmdFailure => 1, shellCmdSuccess => 0 };
+#use constant { true => 1, false => 0 };
+#use constant { shellCmdFailure => 1, shellCmdSuccess => 0 };
 
 
 # # #
@@ -85,10 +86,10 @@ sub testAttributeSettersAndGetters {
     ($singleDebPackage->getDependencies() ne $dependencies)
         && confess("Failed with test.");
 
-    my $addrWhereCanBeFound = "fake-value";
-    $singleDebPackage->setAddrWhereCanBeFound($addrWhereCanBeFound);
-    ($singleDebPackage->getAddrWhereCanBeFound() ne $addrWhereCanBeFound)
-        && confess("Failed with test.");
+    #my $addrWhereCanBeFound = "fake-value";
+    #$singleDebPackage->setAddrWhereCanBeFound($addrWhereCanBeFound);
+    #($singleDebPackage->getAddrWhereCanBeFound() ne $addrWhereCanBeFound)
+        #&& confess("Failed with test.");
 
     my $codeNameOfSourceWhereCanNOTBeFound = "fake-value";
     $singleDebPackage->setCodeNameOfSourceWhereCanNOTBeFound($codeNameOfSourceWhereCanNOTBeFound);
