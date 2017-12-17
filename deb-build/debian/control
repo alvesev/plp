@@ -1,0 +1,13 @@
+Source: plp
+Section: main
+Priority: standart
+Maintainer: Alex Vesev <alex.vesev@gmail.com>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.3
+Homepage: https://github.com/alvesev
+
+Package: plp
+Architecture: all
+Depends: python3, sudo, python3-yaml
+Description: PLP - Packages List Processor.
+ Packages List Processor - helpers for maintaining of a list of favourite software packages across distributions.

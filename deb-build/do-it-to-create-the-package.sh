@@ -19,11 +19,28 @@
 #
 ##
 
+
+
+PS4="CMD:\${0}:\${LINENO}:pid=\${$}: "
 set -x
 set -e
 
-./plp --help
-set +x ; echo -ne "\n\n\n\n" ; set -x
+declare -r packageName="plp"
 
-./plp                                   --in="../src-tests/example-packages-list.conf"
-./plp --distro="Ubuntu" --version=16.04 --in="../src-tests/example-packages-list.conf"
+echo "INFO:${0}:${LINENO}: Building the package."
+fakeroot dpkg-buildpackage -b -us -uc # XXX - GPG sign?
+
+echo "INFO:${0}:${LINENO}: Moving the package and other files into current directory."
+mv --force "../${packageName}_"*"_"*".changes" "."
+mv --force "../${packageName}_"*"_"*".deb" "."
+
+echo "INFO:${0}:${LINENO}: Going to perform cleanup."
+make clean
+rm -rf ./debian/${packageName}/
+rm -rf ./debian/${packageName}.substvars
+rm -rf ./debian/stamp-makefile-build
+rm -rf ./debian/stamp-makefile-install
+
+set +x
+echo -ne "\n\n"
+echo "INFO:${0}:${LINENO}: You may see the packages's list of files via 'dpkg -c ${packageName}_*.deb'".

@@ -25,6 +25,7 @@ import sys
 sys.dont_write_bytecode = True
 sys.path.append("/opt/plp")
 
+
 import yaml
 import argparse
 from journal import l
@@ -36,20 +37,16 @@ def get_cli_args():
     parser = argparse.ArgumentParser(description=mainHelpText)
     parser.add_argument('--in',
                         dest='file_input',
+                        default=True,
                         action='store',
                         required=True,
                         help="File to read from.")
-    parser.add_argument('--distro',
-                        dest='distro',
-                        choices=['any','Ubuntu','Fedora','Arch'],
-                        action='store',
-                        required=True,
-                        help="Distribution name.")
-    parser.add_argument('--version',
-                        dest='version',
+    parser.add_argument('--state',
+                        dest='state',
+                        choices=['any','enabled','disabled'],
                         default='any',
                         action='store',
-                        help="Distribution version.")
+                        help="Select records to be listed.")
     parser.add_argument('--verbose',
                         dest='is_verbose',
                         action='store_true',
@@ -61,26 +58,18 @@ def get_cli_args():
 
 def main(cli_args):
     l.info("Input is:  {}".format(cli_args.file_input))
-
     with open(cli_args.file_input, "r") as fh:
         packs_desc = yaml.load(fh)
 
-    packs_list = ' '.join(sorted([i["name"]
-                           for i in packs_desc["packs"]
-                           if i["enabled"]
-                           if cli_args.distro+"/"+cli_args.version
-                                              not in [x["name"]+"/"+x["version"]
-                                                      for x in i["none_in"]]]))
-
-    if cli_args.distro == "any":
-        print(packs_list)
-    elif cli_args.distro == "Ubuntu":
-        print("sudo apt-get update &&"
-              + " sudo apt-get install --dry-run --download-only"
-              + " {}".format(packs_list))
-    else:
-        assert False, "Unimplemented functionality '{}'".format(cli_args.distro)
-
+    if cli_args.state == "any":
+        print('\n'.join(["{} :::: {}".format(i["name"], i["comment"])
+                for i in packs_desc["packs"]]))
+    elif cli_args.state == "enabled":
+        print('\n'.join(["{} :::: {}".format(i["name"], i["comment"])
+                for i in packs_desc["packs"] if i["enabled"]]))
+    elif cli_args.state == "disabled":
+        print('\n'.join(["{} :::: {}".format(i["name"], i["comment"])
+                for i in packs_desc["packs"] if not i["enabled"]]))
 
 if __name__ == '__main__':
     try:

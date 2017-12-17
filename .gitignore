@@ -1,2 +1,12 @@
 /misc/
+/trash/
+/tmp/
 *geany
+/.idea/
+*.tar.gz
+
+deb-build/debian/compat
+deb-build/debian/files
+deb-build/debian/*.debhelper.log
+deb-build/*.deb
+deb-build/*.changes

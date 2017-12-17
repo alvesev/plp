@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+#  Copyright 2013-2017 Alex Vesev <alex.vesev@gmail.com>
+#
+#  This file is part of Packages List Processor - PLP.
+#
+#  PLP is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  PLP is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with PLP.  If not, see <http://www.gnu.org/licenses/>.
+#
+##
+
+
+import sys
+sys.dont_write_bytecode = True
+sys.path.append("/opt/plp")
+
+
+import re
+import argparse
+from journal import l
+import traceback
+
+
+def get_cli_args():
+    mainHelpText = "No documentation has been created."
+    parser = argparse.ArgumentParser(description=mainHelpText)
+    parser.add_argument('--in',
+                        dest='file_input',
+                        default=True,
+                        action='store',
+                        required=True,
+                        help="File to read from.")
+    parser.add_argument('--out',
+                        dest='file_output',
+                        default=True,
+                        action='store',
+                        required=True,
+                        help="File to write into.")
+    parser.add_argument('--verbose',
+                        dest='is_verbose',
+                        action='store_true',
+                        help="Be verbose.")
+
+    args = parser.parse_args()
+    return args
+
+
+def main(cli_args):
+    l.info("Input is:  {}".format(cli_args.file_input))
+    l.info("Output is: {}".format(cli_args.file_output))
+    yaml_conf = {"packs": []}
+    with open(cli_args.file_input, "r") as fh:
+        packs_desc = fh.readlines()
+    delim_sign = " ,, "
+    for line in packs_desc:
+        section = {}
+        fields = line.split(delim_sign, 4-1)
+        if len(fields) == 4:
+            section = {}
+            names, not_in_distro, of_family, comment = fields
+            names = names.split(" ")
+            if re.match(r"^##.*", names[0]):
+                is_enabled = False
+            else:
+                is_enabled = True
+            if re.match(r"^#.*", names[0]):
+                del(names[0])
+            section["names"] = " ".join(names)
+            section["enable"] = is_enabled
+
+
+            if (not_in_distro == "none".lower() or not not_in_distro) \
+                    and (of_family == "none".lower() or not of_family):
+                not_in_distro = ""
+                of_family = ""
+
+            not_in_distro = not_in_distro.split(" ")
+            of_family = of_family.split(" ")
+            assert len(not_in_distro) == len(of_family), \
+                "Length are not same: {}".format(line.rstrip())
+            only_in_distro = [{"name": x[0], "version": x[1]}
+                              for x in zip(not_in_distro,of_family)]
+            section["none_in"] = only_in_distro
+
+
+            comment = comment.rstrip()
+            section["comment"] = comment
+
+        else:
+            section["note"] = line.rstrip()
+
+        yaml_conf["packs"].append(section)
+
+
+    yaml_text = "---\n\npacks:\n"
+    for section in yaml_conf["packs"]:
+        if "note" in section:
+            yaml_text += "{}\n".format(section["note"].rstrip())
+        else:
+            text_distro = ""
+            for d in section["none_in"]:
+                text_distro += """
+          - name:    '{}'
+            version: '{}'""".format(d["name"], d["version"])
+
+            text_out = """
+
+    - name:          {}
+
+      comment:       {}
+      none_in:   {}
+      enabled:       {}
+""".format(section["names"],
+           section["comment"],
+           text_distro.rstrip(),
+           section["enable"])
+            yaml_text += text_out
+
+    if cli_args.is_verbose:
+        print(yaml_text)
+    with open(cli_args.file_output, "w") as fh:
+        fh.write(yaml_text)
+
+if __name__ == '__main__':
+    try:
+        cli_args = get_cli_args()
+        main(cli_args)
+    except Exception as e:
+        l.error("Had error.\n".format(traceback.format_exc(e)))
+        l.error(traceback.format_exc(e))
+        exit(1)
+    l.info("Job done.\n")

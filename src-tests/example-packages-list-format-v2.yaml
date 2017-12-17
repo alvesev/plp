@@ -1,0 +1,100 @@
+---
+
+packs:
+
+    - name:          package-to-be-istalled
+
+      comment:       Some user description. // Robo-added official summary for a "head" package.
+      none_in:   
+          - name:    'DistroWhereItIsNotExist'
+            version: 'TheDistroVersion'
+      enabled:       True
+
+
+    - name:          pack-head pack2 pack3
+
+      comment:       Several packs on one line.
+      none_in:   
+          - name:    ''
+            version: ''
+      enabled:       True
+
+
+    - name:          package-excluded-from-install
+
+      comment:       Pack/packs to be omited.
+      none_in:   
+          - name:    ''
+            version: ''
+      enabled:       False
+
+
+    - name:          doublecmd-gtk2
+
+      comment:       Double commander.
+      none_in:   
+          - name:    'Ubuntu'
+            version: '16.04'
+          - name:    'Fedora'
+            version: '17'
+      enabled:       True
+
+
+    - name:          total-commander
+
+      comment:       Twin panel file manager.
+      none_in:   
+          - name:    'Ubuntu'
+            version: '12.04'
+          - name:    'Fedora'
+            version: '17'
+          - name:    'ArchBang'
+            version: '121101'
+      enabled:       True
+
+
+    - name:          claws-mail
+
+      comment:       .
+      none_in:   
+          - name:    ''
+            version: ''
+      enabled:       True
+
+
+    - name:          claws-mail-trayicon claws-mail-bogofilter claws-mail-tools claws-mail-doc
+
+      comment:       A GTK+ based e-mail client.
+      none_in:   
+          - name:    'Fedora'
+            version: '12.10'
+          - name:    'ArchBang'
+            version: '121101'
+      enabled:       True
+
+
+    - name:          thunderbird
+
+      comment:       Standalone Mail/News reader.
+      none_in:   
+          - name:    ''
+            version: ''
+      enabled:       True
+
+
+    - name:          evolution evolution-plugins
+
+      comment:       Manage your email, contacts and schedule. 'evolution-plugins' - backup and restore Evolution plugin is inside) // Manage your email, contacts and schedule.
+      none_in:   
+          - name:    'Ubuntu'
+            version: '2012-12-02'
+      enabled:       True
+
+
+    - name:          alpine
+
+      comment:       e-mail client for CLI in Scientific Linux an others.
+      none_in:   
+          - name:    ''
+            version: ''
+      enabled:       False
