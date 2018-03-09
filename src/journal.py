@@ -36,8 +36,14 @@ size_log = 1*1024*1024
 
 if not os.path.isdir(os.path.dirname(file_log)):
     os.mkdir(os.path.dirname(file_log))
-log_str_frmt = "%(asctime)s:pid=%(process)d:" \
-               + "%(filename)s:%(lineno)s: %(message)s"
+
+log_str_frmt = "%(asctime)s [%(levelname)-5.5s" \
+                            + ":%(filename)s" \
+                            + ":%(lineno)s"\
+                            + ":pid-%(process)d" \
+                            + ":%(threadName)-12.12s]" \
+                            + " %(message)s"
+
 level = logging.INFO
 logging.basicConfig(format=log_str_frmt, level="INFO")
 lform = logging.Formatter(log_str_frmt)
