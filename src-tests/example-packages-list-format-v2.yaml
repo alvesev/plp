@@ -15,8 +15,7 @@ packs:
 
       comment:       Several packs on one line.
       tags:
-          -          optional
-          -          server
+          -          office
           -          private
       none_in:
           - name:    ''
@@ -47,7 +46,9 @@ packs:
     - name:          total-commander
 
       comment:       Twin panel file manager.
-      none_in:   
+      tags:
+          -          optional
+      none_in:
           - name:    'Ubuntu'
             version: '12.04'
           - name:    'Fedora'
@@ -89,7 +90,10 @@ packs:
     - name:          evolution evolution-plugins
 
       comment:       Manage your email, contacts and schedule. 'evolution-plugins' - backup and restore Evolution plugin is inside) // Manage your email, contacts and schedule.
-      none_in:   
+      tags:
+          -          office
+          -          optional
+      none_in:
           - name:    'Ubuntu'
             version: '2012-12-02'
       enabled:       True
