@@ -26,3 +26,4 @@ set -e
 set +x ; echo -ne "\n\n\n\n" ; set -x
 
 ./plp --distro="Ubuntu" --version=16.04 --in="../src-tests/example-packages-list-format-v2.yaml"
+./plp --distro="Ubuntu" --version=16.04 --in="../src-tests/example-packages-list-format-v2.yaml" --tags "server" "optional"
