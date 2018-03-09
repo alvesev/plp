@@ -86,7 +86,7 @@ def main(cli_args):
                          if i["enabled"]
                          if cli_args.distro+"/"+cli_args.version
                                           not in [x["name"]+"/"+x["version"]
-                                                  for x in i["none_in"]]])  # Filter out diabled and from other distros.
+                                                  for x in i["none_in"]]])  # Drop records disabled, records for other distros.
     if cli_args.tags_include:
         packs_list = [i
                       for i in packs_list
@@ -98,18 +98,18 @@ def main(cli_args):
         packs_list = [i
                       for i in packs_list
                       if "tags" in i and not [x for x in cli_args.tags_ommit
-                              if x in i["tags"]] or "tags" not in i]  # Drop undesired items.
+                              if x in i["tags"]] or "tags" not in i]  # Drop items with tags selected as ommited.
 
-    packs_plain_list = ' '.join([i["name"] for i in packs_list])
+    packs_list_string = ' '.join([i["name"] for i in packs_list])
 
-    if packs_plain_list:
+    if packs_list_string:
         l.info("Quantity of selected records: {}".format(len(packs_list)))
         if cli_args.distro == "any":
-            print(packs_plain_list)
+            print(packs_list_string)
         elif cli_args.distro == "Ubuntu":
             print("sudo apt-get update &&"
                   + " sudo apt-get install --dry-run --download-only"
-                  + " {}".format(packs_plain_list))
+                  + " {}".format(packs_list_string))
         else:
             assert False, "Unimplemented functionality"\
                           + "'{}'".format(cli_args.distro)
