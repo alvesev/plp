@@ -25,5 +25,4 @@ set -e
 ./plp --help
 set +x ; echo -ne "\n\n\n\n" ; set -x
 
-./plp                                   --in="../src-tests/example-packages-list.conf"
-./plp --distro="Ubuntu" --version=16.04 --in="../src-tests/example-packages-list.conf"
+./plp --distro="Ubuntu" --version=16.04 --in="../src-tests/example-packages-list-format-v2.yaml"
