@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 #  Copyright 2013-2017 Alex Vesev <alex.vesev@gmail.com>
@@ -82,11 +82,12 @@ def main(cli_args):
         packs_desc = yaml.load(fh)
 
     packs_list = sorted([i
-                         for i in packs_desc["packs"]
-                         if i["enabled"]
-                         if cli_args.distro+"/"+cli_args.version
-                                          not in [x["name"]+"/"+x["version"]
-                                                  for x in i["none_in"]]])  # Drop records disabled, records for other distros.
+                             for i in packs_desc["packs"]
+                             if i["enabled"]
+                             if cli_args.distro+"/"+cli_args.version
+                                              not in [x["name"]+"/"+x["version"]
+                                                      for x in i["none_in"]]],
+                        key=lambda x: sorted(x.keys()))  # Drop records disabled, records for other distros.
     if cli_args.tags_include:
         packs_list = [i
                       for i in packs_list
