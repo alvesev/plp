@@ -5,7 +5,7 @@ packs:
     - name:          package-to-be-istalled
 
       comment:       Some user description. // Robo-added official summary for a "head" package.
-      none_in:   
+      none_in:
           - name:    'DistroWhereItIsNotExist'
             version: 'TheDistroVersion'
       enabled:       True
@@ -14,7 +14,11 @@ packs:
     - name:          pack-head pack2 pack3
 
       comment:       Several packs on one line.
-      none_in:   
+      tags:
+          -          optional
+          -          server
+          -          private
+      none_in:
           - name:    ''
             version: ''
       enabled:       True

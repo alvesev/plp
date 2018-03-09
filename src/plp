@@ -50,12 +50,28 @@ def get_cli_args():
                         default='any',
                         action='store',
                         help="Distribution version.")
+    parser.add_argument('--tags-ommit',
+                        dest='tags_ommit',
+                        default=[],
+                        nargs='+',
+                        action='append',
+                        help="Items with the tags will be ommited.")
+    parser.add_argument('--tags',
+                        dest='tags_include',
+                        default=[],
+                        nargs='+',
+                        action='append',
+                        help="Only items with the tags will be included.")
     parser.add_argument('--verbose',
                         dest='is_verbose',
                         action='store_true',
                         help="Be verbose.")
 
     args = parser.parse_args()
+
+    args.tags_include = set(sorted([x for y in args.tags_include for x in y]))
+    args.tags_ommit = set(sorted([x for y in args.tags_ommit for x in y]))
+
     return args
 
 
@@ -65,21 +81,39 @@ def main(cli_args):
     with open(cli_args.file_input, "r") as fh:
         packs_desc = yaml.load(fh)
 
-    packs_list = ' '.join(sorted([i["name"]
-                           for i in packs_desc["packs"]
-                           if i["enabled"]
-                           if cli_args.distro+"/"+cli_args.version
-                                              not in [x["name"]+"/"+x["version"]
-                                                      for x in i["none_in"]]]))
+    packs_list = sorted([i
+                         for i in packs_desc["packs"]
+                         if i["enabled"]
+                         if cli_args.distro+"/"+cli_args.version
+                                          not in [x["name"]+"/"+x["version"]
+                                                  for x in i["none_in"]]])  # Filter out diabled and from other distros.
+    if cli_args.tags_include:
+        packs_list = [i
+                      for i in packs_list
+                      if "tags" in i
+                      if cli_args.tags_include.issubset(set(sorted((i["tags"]))))]  # Filter items with desired tags only.
 
-    if cli_args.distro == "any":
-        print(packs_list)
-    elif cli_args.distro == "Ubuntu":
-        print("sudo apt-get update &&"
-              + " sudo apt-get install --dry-run --download-only"
-              + " {}".format(packs_list))
+    if cli_args.tags_ommit:
+        packs_list = [i
+                      for i in packs_list
+                      if "tags" in i
+                      if not [x for x in cli_args.tags_ommit
+                              if x in i["tags"]]]  # Drop undesired items.
+
+    packs_list = ' '.join([i["name"] for i in packs_list])
+
+    if packs_list:
+        if cli_args.distro == "any":
+            print(packs_list)
+        elif cli_args.distro == "Ubuntu":
+            print("sudo apt-get update &&"
+                  + " sudo apt-get install --dry-run --download-only"
+                  + " {}".format(packs_list))
+        else:
+            assert False, "Unimplemented functionality"\
+                          + "'{}'".format(cli_args.distro)
     else:
-        assert False, "Unimplemented functionality '{}'".format(cli_args.distro)
+        l.warning("No package names have been filtered at all.")
 
 
 if __name__ == '__main__':
