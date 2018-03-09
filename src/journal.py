@@ -54,3 +54,5 @@ flh.setFormatter(lform)
 flh.setLevel(level)
 l.addHandler(flh)
 l.setLevel(level)
+
+l.info("Log file is '{}'.".format(file_log))
