@@ -4,5 +4,33 @@ Helpers for maintaining of a list of favourite software packages across distribu
 
 Debian package files can be obtained here:
 
-    DEB - https://drive.google.com/open?id=1Q2buAK6ohE_-4bnhhJk4-zgiwD4-4a5n
-    MD5 - https://drive.google.com/open?id=18wbaduXtrhV3O9JIAIi4q2jrX_0m3jK-
+    version 1:
+
+        DEB - https://drive.google.com/open?id=1Q2buAK6ohE_-4bnhhJk4-zgiwD4-4a5n
+        MD5 - https://drive.google.com/open?id=18wbaduXtrhV3O9JIAIi4q2jrX_0m3jK-
+
+    version 2:
+
+        DEB - https://drive.google.com/open?id=1q_VtAnFc8Ese0mcAXeJYjO2md_BnCcQp
+        MD5 - https://drive.google.com/open?id=1Vc2wUX-7KGNuQx2yWH0nSYpvobbhGZoF
+
+
+#
+#  Copyright 2013-2018 Alex Vesev <alex.vesev@gmail.com>
+#
+#  This file is part of Packages List Processor - PLP.
+#
+#  PLP is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  PLP is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with PLP.  If not, see <http://www.gnu.org/licenses/>.
+#
+##

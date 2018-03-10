@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#  Copyright 2013-2017 Alex Vesev <alex.vesev@gmail.com>
+#  Copyright 2013-2018 Alex Vesev <alex.vesev@gmail.com>
 #
 #  This file is part of Packages List Processor - PLP.
 #
