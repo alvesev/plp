@@ -1,3 +1,9 @@
+plp (3) bionic-ulyana; urgency=low
+
+  * More distros.
+
+ -- Alex Vesev <alex.vesev@gmail.com>  Fri, 30 Aug 2020 20:11:53 +0300
+
 plp (2) xenial; urgency=low
 
   * Version 2 of software list - in YAML now.

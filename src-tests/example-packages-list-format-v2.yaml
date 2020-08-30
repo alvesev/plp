@@ -40,6 +40,8 @@ packs:
             version: '16.04'
           - name:    'Fedora'
             version: '17'
+          - name:    'Mint'
+            version: '20'
       enabled:       True
 
 
