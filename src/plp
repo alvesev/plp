@@ -79,7 +79,7 @@ def main(cli_args):
     l.info("Input is:  {}".format(cli_args.file_input))
 
     with open(cli_args.file_input, "r") as fh:
-        packs_desc = yaml.load(fh)
+        packs_desc = yaml.safe_load(fh)
 
     packs_list = sorted([i
                              for i in packs_desc["packs"]

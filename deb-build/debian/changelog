@@ -1,3 +1,9 @@
+plp (4) bionic-ulyana; urgency=low
+
+  * Yaml load functions - https://github.com/yaml/pyyaml/wiki/PyYAML-yaml.load(input)-Deprecation
+
+ -- Alex Vesev <alex.vesev@gmail.com>  Sat, 17 Oct 2020 18:07:53 +0300
+
 plp (3) bionic-ulyana; urgency=low
 
   * More distros.
